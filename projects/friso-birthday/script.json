@@ -25,8 +25,8 @@
      "visual_note": "[ВИДЕО] Врач-педиатр высшей категории — поздравление, плашка",
      "data": {"kicker": "Врач-педиатр высшей квалификационной категории", "text": "Поздравление №3 — видео", "size": 5}},
     {"template": "statement", "transition": "dissolve", "energy": 0.6, "min_duration": 3, "riser": true,
-     "visual_note": "[ВИДЕО] Четвёртый врач — поздравление, плашка",
-     "data": {"kicker": "Врач", "text": "Поздравление №4 — видео", "size": 5}},
+     "visual_note": "[ВИДЕО] Врач-неонатолог (второй) — поздравление, плашка",
+     "data": {"kicker": "Врач-неонатолог", "text": "Поздравление №4 — видео", "size": 5}},
 
     {"template": "statement", "transition": "fadewhite", "energy": 0.75, "duration": 1.4, "whoosh": false,
      "visual_note": "[ВИДЕО] Врач 1 — крупно, одно слово", "data": {"text": "*С*", "size": 22, "style": "blur"}},
