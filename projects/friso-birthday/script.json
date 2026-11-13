@@ -1,0 +1,44 @@
+{
+  "title": "Friso — с днём рождения от врачей",
+  "logline": "Четыре врача — четыре голоса — одно поздравление.",
+  "format": "16:9",
+  "fps": 30,
+  "theme": "gold",
+  "accent": "#f2d18b",
+  "music": {"mood": "inspire", "key": "D", "volume": 0.9, "duck": 0.22},
+  "subtitles": false,
+  "grade": {"grain": 3, "vignette": true, "letterbox": true, "contrast": 1.03, "saturation": 1.04},
+  "bg": {"particles": 110, "speed": 0.6},
+  "transition_duration": 0.8,
+  "scenes": [
+    {"template": "title", "energy": 0.15, "min_duration": 4.5,
+     "visual_note": "Тёмный кадр, золотые частицы, проявляется поздравление",
+     "data": {"kicker": "Friso", "title": "С днём рождения", "subtitle": "поздравляют врачи, которые встречают жизнь с первых минут", "size": 10}},
+
+    {"template": "statement", "transition": "fadeblack", "energy": 0.3, "min_duration": 3,
+     "visual_note": "[ВИДЕО] Врач-неонатолог — лучший фрагмент поздравления, плашка: имя / Врач-неонатолог",
+     "data": {"kicker": "Врач-неонатолог", "text": "Поздравление №1 — видео", "size": 5}},
+    {"template": "statement", "transition": "dissolve", "energy": 0.4, "min_duration": 3,
+     "visual_note": "[ВИДЕО] Врач-педиатр — поздравление, плашка",
+     "data": {"kicker": "Врач-педиатр", "text": "Поздравление №2 — видео", "size": 5}},
+    {"template": "statement", "transition": "dissolve", "energy": 0.5, "min_duration": 3,
+     "visual_note": "[ВИДЕО] Врач-педиатр высшей категории — поздравление, плашка",
+     "data": {"kicker": "Врач-педиатр высшей квалификационной категории", "text": "Поздравление №3 — видео", "size": 5}},
+    {"template": "statement", "transition": "dissolve", "energy": 0.6, "min_duration": 3, "riser": true,
+     "visual_note": "[ВИДЕО] Четвёртый врач — поздравление, плашка",
+     "data": {"kicker": "Врач", "text": "Поздравление №4 — видео", "size": 5}},
+
+    {"template": "statement", "transition": "fadewhite", "energy": 0.75, "duration": 1.4, "whoosh": false,
+     "visual_note": "[ВИДЕО] Врач 1 — крупно, одно слово", "data": {"text": "*С*", "size": 22, "style": "blur"}},
+    {"template": "statement", "transition": "cut", "energy": 0.8, "duration": 1.4,
+     "visual_note": "[ВИДЕО] Врач 2 — одно слово", "data": {"text": "*днём*", "size": 18, "style": "blur"}},
+    {"template": "statement", "transition": "cut", "energy": 0.85, "duration": 1.4,
+     "visual_note": "[ВИДЕО] Врач 3 — одно слово", "data": {"text": "*рождения*", "size": 15, "style": "blur"}},
+    {"template": "statement", "transition": "cut", "energy": 0.95, "duration": 1.8, "hit": true,
+     "visual_note": "[ВИДЕО] Врач 4 — финальное слово, удар", "data": {"text": "*Friso!*", "size": 20, "style": "blur"}},
+
+    {"template": "outro", "transition": "fadeblack", "energy": 0.3, "min_duration": 5,
+     "visual_note": "Финал: тёплое свечение, итоговая фраза",
+     "data": {"title": "Четыре врача. *Одно* поздравление.", "cta": "С днём рождения, Friso!", "logo": "♥", "size": 6.5}}
+  ]
+}
