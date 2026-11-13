@@ -16,6 +16,7 @@ Projects live in projects/<slug>/ ; final video -> projects/<slug>/out/<slug>.mp
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import re
 import shutil
@@ -266,7 +267,8 @@ class Project:
             key = h([p, tpl_key, self.W, self.H, self.fps])
             sc["_clip"] = str(out)
             if sc.get("template") == "footage":
-                key = h([key, self.media(sc["src"]).stat().st_mtime, {k: v for k, v in sc.items() if not k.startswith("_")}, Path(__file__).read_text()])
+                key = h([key, self.media(sc["src"]).stat().st_mtime, {k: v for k, v in sc.items() if not k.startswith("_")},
+                         inspect.getsource(Project.footage_vf), inspect.getsource(Project.render_footage)])
                 if cache.get(sc["id"]) != key or not out.exists():
                     ov = sc.get("overlay") or {}
                     p.update(template=ov.get("template", "none"), data=ov.get("data", {}), transparent=True)
@@ -333,6 +335,23 @@ class Project:
                "-map", "[v]", "-t", f"{D:.3f}", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "16", sc["_clip"]]
         subprocess.run(cmd, check=True)
 
+    def level_dialog(self, f, target=0.11):
+        """Phones record at wildly different levels: bring every voice to the same loudness, then tame peaks."""
+        import numpy as np
+        from scipy import signal as sg
+        x = audio.read_wav(f)
+        x = audio.highpass(x, 90)
+        m = np.abs(x).mean(axis=1)
+        win = int(0.03 * audio.SR)
+        e = np.sqrt(np.convolve(m ** 2, np.ones(win) / win, mode="same"))
+        active = e > max(e.max() * 0.08, 1e-4)
+        rms = np.sqrt((x[active] ** 2).mean()) if active.any() else np.sqrt((x ** 2).mean())
+        x = x * min(target / max(rms, 1e-5), 30)
+        env = sg.lfilter([0.003], [1, -0.997], np.abs(x).max(axis=1))  # gentle compressor above 0.3
+        g = np.where(env > 0.3, (0.3 / np.maximum(env, 1e-6)) ** 0.5, 1.0)
+        x = audio.softclip(x * g[:, None], 1.2) * 0.95
+        audio.write_wav(f, x)
+
     def footage_audio(self):
         out = []
         for sc in self.scenes:
@@ -344,6 +363,7 @@ class Project:
                             "-i", str(self.media(sc["src"])), "-vn", "-ac", "2", "-ar", str(audio.SR),
                             "-af", "highpass=f=70,afade=t=in:d=0.04,areverse,afade=t=in:d=0.08,areverse", str(f)], check=False)
             if f.exists() and f.stat().st_size > 1000:
+                self.level_dialog(f)
                 out.append({"file": str(f), "start": sc["_t"]["start"], "gain": sc.get("volume", 1.0)})
         return out
 
@@ -369,7 +389,7 @@ class Project:
             if i and t["tr_in"] != "cut" and sc.get("whoosh", self.script.get("whoosh", True)):
                 sfx.append({"kind": "whoosh", "start": t["start"] + t["td_in"] / 2, "gain": 0.6})
             if sc.get("hit"):
-                sfx.append({"kind": "impact", "start": t["start"] + t["td_in"], "gain": 0.9})
+                sfx.append({"kind": "impact", "start": t["start"] + t["td_in"] + sc.get("hit_offset", 0), "gain": 0.9})
             if sc.get("riser"):
                 sfx.append({"kind": "riser", "start": t["start"] + t["td_in"], "gain": 0.7})
         music = m.get("file") or str(self.build / "music.wav")
@@ -383,15 +403,17 @@ class Project:
         inputs, fc = [], []
         for sc in self.scenes:
             inputs += ["-i", sc["_clip"]]
-        prev = "[0:v]"
+        for i in range(len(self.scenes)):  # normalise timebase/fps so cut+xfade chains mix safely
+            fc.append(f"[{i}:v]fps={self.fps},format=yuv420p,settb=AVTB,setpts=PTS-STARTPTS[n{i}]")
+        prev = "[n0]"
         for i, sc in enumerate(self.scenes[1:], start=1):
             t = sc["_t"]
             out = f"[v{i}]"
             if t["tr_in"] == "cut" or t["td_in"] == 0:
-                fc.append(f"{prev}[{i}:v]concat=n=2:v=1:a=0{out}")
+                fc.append(f"{prev}[n{i}]concat=n=2:v=1:a=0,settb=AVTB{out}")
             else:
                 tr = t["tr_in"] if t["tr_in"] in XFADE else "fade"
-                fc.append(f"{prev}[{i}:v]xfade=transition={tr}:duration={t['td_in']}:offset={t['start']:.3f}{out}")
+                fc.append(f"{prev}[n{i}]xfade=transition={tr}:duration={t['td_in']}:offset={t['start']:.3f},settb=AVTB{out}")
             prev = out
         post = [f"eq=contrast={g.get('contrast', 1.04)}:saturation={g.get('saturation', 1.06)}"]
         if g.get("vignette", True):

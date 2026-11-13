@@ -8,8 +8,8 @@
  "music": {
   "mood": "inspire",
   "key": "D",
-  "volume": 0.9,
-  "duck": 0.18
+  "volume": 0.75,
+  "duck": 0.12
  },
  "subtitles": true,
  "grade": {
@@ -24,7 +24,6 @@
   "speed": 0.6
  },
  "transition_duration": 0.8,
- "doctors_mapping_note": "8005/3350/9695 — имена предположительно, ждём подтверждения; 7046 — по бейджу",
  "scenes": [
   {
    "template": "title",
@@ -93,8 +92,8 @@
    "overlay": {
     "template": "lower",
     "data": {
-     "title": "Муборак Ашурматова",
-     "caption": "Врач-неонатолог",
+     "title": "Наргиза",
+     "caption": "Врач-педиатр",
      "at": 0.9,
      "hold": 5
     }
@@ -289,8 +288,8 @@
    "overlay": {
     "template": "lower",
     "data": {
-     "title": "Наргиза",
-     "caption": "Врач-педиатр",
+     "title": "Муборак Ашурматова",
+     "caption": "Врач-неонатолог",
      "at": 0.9,
      "hold": 5
     }
@@ -300,14 +299,13 @@
   {
    "template": "footage",
    "src": "inbox:IMG_9695.mov",
-   "in": 0.95,
+   "in": 0.82,
    "out": 1.95,
    "audio": true,
    "volume": 1.1,
    "transition": "fadewhite",
    "transition_duration": 0.5,
-   "energy": 0.75,
-   "riser": true,
+   "energy": 0.55,
    "min_duration": 0.5,
    "zoom": 1.12,
    "subs": false,
@@ -336,7 +334,7 @@
    "audio": true,
    "volume": 1.1,
    "transition": "cut",
-   "energy": 0.8,
+   "energy": 0.58,
    "min_duration": 0.5,
    "zoom": 1.12,
    "subs": false,
@@ -364,7 +362,7 @@
    "audio": true,
    "volume": 1.1,
    "transition": "cut",
-   "energy": 0.85,
+   "energy": 0.6,
    "min_duration": 0.5,
    "zoom": 1.12,
    "subs": false,
@@ -388,12 +386,12 @@
    "template": "footage",
    "src": "inbox:IMG_8005.mov",
    "in": 32.85,
-   "out": 34.6,
+   "out": 35.3,
    "hflip": true,
    "audio": true,
    "volume": 1.1,
    "transition": "cut",
-   "energy": 0.95,
+   "energy": 0.62,
    "hit": true,
    "min_duration": 0.5,
    "zoom": 1.12,
@@ -412,12 +410,13 @@
     }
    },
    "visual_note": "ФИНАЛ 4/4: «Команда Friso!» — удар",
-   "audio_out": 34.25
+   "audio_out": 34.25,
+   "hit_offset": 1.45
   },
   {
    "template": "outro",
    "transition": "fadeblack",
-   "energy": 0.3,
+   "energy": 0.35,
    "min_duration": 6,
    "hold": 1.5,
    "visual_note": "Итог: одна большая семья",
@@ -427,6 +426,28 @@
     "logo": "♥",
     "size": 7
    }
+  }
+ ],
+ "doctors": [
+  {
+   "name": "Наргиза",
+   "role": "Врач-педиатр",
+   "video": "IMG_8005.mov"
+  },
+  {
+   "name": "Ирина Голубина",
+   "role": "Врач-педиатр",
+   "video": "IMG_3350.mov"
+  },
+  {
+   "name": "Муборак Ашурматова",
+   "role": "Врач-неонатолог",
+   "video": "IMG_9695.mov"
+  },
+  {
+   "name": "Диля Махмудова",
+   "role": "Врач-неонатолог",
+   "video": "IMG_7046.mov"
   }
  ]
 }
