@@ -8,6 +8,7 @@
   python3 studio.py ingest <slug> part1.mp4 part2.mp4 …   # join uploaded parts -> media/
   python3 studio.py look <slug> <file.mp4|inbox:file.mp4>  # contact sheet + speech map of footage
   python3 studio.py inbox                      # videos in the Inbox folder (read-only source)
+  python3 studio.py pull                       # fetch new videos from the cloud Inbox (GitHub release "inbox")
   python3 studio.py voices                     # list voices
 
 Projects live in projects/<slug>/ ; final video -> projects/<slug>/out/<slug>.mp4
@@ -467,6 +468,41 @@ def cmd_inbox():
     print(json.dumps({"inbox": str(d), "videos": rows}, ensure_ascii=False, indent=1))
 
 
+REPO = "drrrismatov/video-studio"
+INBOX_TAG = "inbox"
+
+
+def cmd_pull():
+    """Облачные «Входящие»: скачать новые видео из GitHub-релиза `inbox` (до 2 ГБ на файл) в inbox/."""
+    import urllib.request
+    d = inbox_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    try:
+        with urllib.request.urlopen(f"https://api.github.com/repos/{REPO}/releases/tags/{INBOX_TAG}", timeout=30) as r:
+            rel = json.load(r)
+    except Exception as e:
+        print(f"Облачные Входящие ещё не созданы (релиз '{INBOX_TAG}'): {e}")
+        print(f"Создать: https://github.com/{REPO}/releases/new?tag={INBOX_TAG}&title=Входящие")
+        return
+    got = 0
+    for a in rel.get("assets", []):
+        if Path(a["name"]).suffix.lower() not in VIDEO_EXT:
+            continue
+        dst = d / a["name"]
+        if dst.exists() and dst.stat().st_size == a["size"]:
+            continue
+        log(f"скачиваю {a['name']} ({a['size'] / 2**20:.0f} МБ)")
+        tmp = dst.with_name("." + dst.name + ".part")
+        subprocess.run(["curl", "-sSL", "--retry", "4", "-H", "Accept: application/octet-stream", "-o", str(tmp), a["url"]], check=True)
+        if tmp.stat().st_size != a["size"]:
+            tmp.unlink()
+            raise SystemExit(f"обрыв загрузки {a['name']}, повторите pull")
+        tmp.rename(dst)
+        got += 1
+    log(f"новых видео: {got}")
+    cmd_inbox()
+
+
 def cmd_new(slug):
     d = ROOT / "projects" / slug
     d.mkdir(parents=True, exist_ok=True)
@@ -490,6 +526,8 @@ def main():
         return cmd_ingest(a[1], a[2:])
     if a[0] == "inbox":
         return cmd_inbox()
+    if a[0] == "pull":
+        return cmd_pull()
     if a[0] == "look":
         return cmd_look(a[1], a[2])
     p = Project(a[1])

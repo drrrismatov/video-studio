@@ -49,6 +49,9 @@ circleopen/close, zoomin, wipeleft/right, radial, pixelize, hblur, distance, squ
 - Числа в закадре писать словами («тридцать»), в data — цифрами.
 
 ## Живое видео пользователя
+- **Облачные Входящие**: пользователь перетаскивает видео в браузере в GitHub-релиз `inbox`
+  (https://github.com/drrrismatov/video-studio/releases/tag/inbox → Edit → прикрепить файлы, до 2 ГБ/файл).
+  `python3 studio.py pull` скачивает новые в `inbox/`. Работает в облачной сессии без установки чего-либо.
 - **Основной путь — папка «Входящие»** (`inbox/` или путь из `$STUDIO_INBOX`): любые размеры, без загрузки в чат.
   `python3 studio.py inbox` — список видео; в сцене `"src": "inbox:файл.mp4"`; `look <slug> inbox:файл.mp4`.
   Студия только читает эту папку (запрет Edit/Write в .claude/settings.json, выход за пределы папки блокируется).
