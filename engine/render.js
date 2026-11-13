@@ -24,12 +24,14 @@ async function prep(page, scene) {
 async function renderClip(page, clip) {
   await prep(page, clip.scene);
   const frames = Math.round(clip.scene.duration * job.fps);
-  const ff = spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(job.fps), '-c:v', 'mjpeg', '-i', '-',
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-pix_fmt', 'yuv420p', '-r', String(job.fps), clip.out], { stdio: ['pipe', 'inherit', 'inherit'] });
+  const alpha = !!clip.scene.transparent;
+  const enc = alpha ? ['-c:v', 'qtrle'] : ['-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-pix_fmt', 'yuv420p'];
+  const ff = spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(job.fps), '-c:v', alpha ? 'png' : 'mjpeg', '-i', '-',
+    ...enc, '-r', String(job.fps), clip.out], { stdio: ['pipe', 'inherit', 'inherit'] });
   const done = new Promise((res, rej) => ff.on('close', c => c === 0 ? res() : rej(new Error('ffmpeg ' + c))));
   for (let f = 0; f < frames; f++) {
     await page.evaluate(t => window.seek(t), f / job.fps);
-    const buf = await page.screenshot({ type: 'jpeg', quality: 93 });
+    const buf = alpha ? await page.screenshot({ type: 'png', omitBackground: true }) : await page.screenshot({ type: 'jpeg', quality: 93 });
     if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
   }
   ff.stdin.end();

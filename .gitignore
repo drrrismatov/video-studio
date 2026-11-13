@@ -2,3 +2,6 @@ assets/voices/
 projects/*/build/
 projects/*/out/*.mp4
 __pycache__/
+projects/*/media/*.mp4
+projects/*/media/*.mov
+projects/ftest/

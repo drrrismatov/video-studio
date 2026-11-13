@@ -388,6 +388,27 @@
     };
   };
 
+  T.none = () => ({ el: h('div'), update() {} });
+
+  // lower third — name / role plate over footage
+  T.lower = (d, D) => {
+    const box = h('div', '', null, { position: 'absolute', left: '6%', bottom: W < H ? '24%' : '14%', display: 'flex', alignItems: 'stretch', gap: U(1.6) });
+    const bar = h('div', '', null, { width: U(0.6), background: 'var(--accent)', boxShadow: '0 0 14px var(--accent)', transformOrigin: 'bottom' });
+    const col = h('div', '', null, { display: 'flex', flexDirection: 'column', gap: U(0.6), padding: `${U(1.2)} ${U(2.2)}`, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: U(0.6) });
+    const nm = h('div', 'h1', esc(d.title || ''), { fontSize: U(d.size || 4.4), color: '#fff' });
+    const rl = h('div', '', esc(d.caption || ''), { fontSize: U(2.4), color: 'var(--accent)', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' });
+    col.append(nm); if (d.caption) col.append(rl);
+    box.append(bar, col);
+    const hold = d.hold || Math.min(D - 0.6, 5);
+    return {
+      el: box, update(t) {
+        const a = E.out5(P(t, d.at || 0.4, 0.7)), z = 1 - E.inOut(P(t, (d.at || 0.4) + hold, 0.5));
+        bar.style.transform = `scaleY(${a * z})`;
+        col.style.opacity = a * z; col.style.transform = `translateX(${(1 - a) * -4}vw)`;
+      }
+    };
+  };
+
   // ------------------------------------------------------------- driver
   let tpl, contentEl, subsEl, overlayEl, subEls = [];
   window.setup = function (sc, w, hgt) {
@@ -401,6 +422,7 @@
     ['fg', 'muted', 'accent', 'accent2', 'card', 'border', 'glow'].forEach(k => r.setProperty('--' + k, theme[k]));
     if (sc.accent) r.setProperty('--accent', sc.accent);
     initBg();
+    if (sc.transparent) { document.documentElement.style.background = 'transparent'; document.body.style.background = 'transparent'; }
     contentEl = document.getElementById('content');
     subsEl = document.getElementById('subs');
     overlayEl = document.getElementById('overlay');
@@ -413,6 +435,7 @@
     if (W < H) subsEl.style.paddingBottom = 'calc(var(--u) * 22)';
   };
   window.seek = function (t) {
+    if (scene.transparent) { ctx.clearRect(0, 0, W, H); tpl.update(t); subEls.forEach(s => { const on = t >= s.start && t < s.end; s.e.style.display = on ? 'block' : 'none'; }); return; }
     drawBg(t);
     tpl.update(t);
     // global camera drift

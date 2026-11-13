@@ -5,6 +5,8 @@
   python3 studio.py storyboard <slug>          # VO + keyframes contact sheet for approval
   python3 studio.py build <slug> [--draft]     # full production: VO, render, music, edit, mix
   python3 studio.py stage <slug> vo|render|music|edit
+  python3 studio.py ingest <slug> part1.mp4 part2.mp4 …   # join uploaded parts -> media/
+  python3 studio.py look <slug> <file.mp4>     # contact sheet + speech map of footage
   python3 studio.py voices                     # list voices
 
 Projects live in projects/<slug>/ ; final video -> projects/<slug>/out/<slug>.mp4
@@ -90,6 +92,10 @@ class Project:
             vo = sc["_vo"]["dur"] if sc.get("_vo") else 0
             tail = 0.7 + td_out
             dur = max(sc.get("min_duration", 3.0), lead + vo + tail if vo else 0)
+            if sc.get("template") == "footage" and "out" in sc:
+                if sc.get("audio", True) and not vo:
+                    lead = 0.0  # live sound starts with the picture
+                dur = max(dur, sc["out"] - sc.get("in", 0) + (td_out if sc.get("audio", True) else 0))
             if sc.get("duration"):
                 dur = sc["duration"]
             if i == n - 1:
@@ -212,13 +218,23 @@ class Project:
 
     def stage_render(self, draft=False):
         tpl_key = h([(ROOT / "engine/web/templates.js").read_text(), (ROOT / "engine/web/player.html").read_text()])
-        clips, cache_f = [], self.build / "clips" / "cache.json"
+        clips, footage_todo, cache_f = [], [], self.build / "clips" / "cache.json"
         cache = json.loads(cache_f.read_text()) if cache_f.exists() else {}
         for i, sc in enumerate(self.scenes):
             p = self.scene_payload(sc, i)
             out = self.build / "clips" / f"{sc['id']}.mp4"
             key = h([p, tpl_key, self.W, self.H, self.fps])
             sc["_clip"] = str(out)
+            if sc.get("template") == "footage":
+                key = h([key, self.media(sc["src"]).stat().st_mtime, {k: v for k, v in sc.items() if not k.startswith("_")}, Path(__file__).read_text()])
+                if cache.get(sc["id"]) != key or not out.exists():
+                    ov = sc.get("overlay") or {}
+                    p.update(template=ov.get("template", "none"), data=ov.get("data", {}), transparent=True)
+                    sc["_ovl"] = str(self.build / "clips" / f"{sc['id']}.ovl.mov")
+                    clips.append({"scene": p, "out": sc["_ovl"]})
+                    footage_todo.append(sc)
+                    cache[sc["id"]] = key
+                continue
             if cache.get(sc["id"]) != key or not out.exists():
                 clips.append({"scene": p, "out": str(out)})
                 cache[sc["id"]] = key
@@ -228,7 +244,61 @@ class Project:
                              "concurrency": self.script.get("concurrency", 3)})
         else:
             log("рендер: все сцены в кеше")
+        for sc in footage_todo:
+            self.render_footage(sc)
         cache_f.write_text(json.dumps(cache, indent=1))
+
+    # ---------------------------------------------------------- live footage
+    def media(self, src) -> Path:
+        p = Path(src)
+        return p if p.is_absolute() else self.dir / p
+
+    def render_footage(self, sc):
+        """Real video: trim, cover-crop to format, slow push-in, grade, titles/subs overlay. Faces untouched."""
+        src, t = self.media(sc["src"]), sc["_t"]
+        D, z = t["dur"], sc.get("zoom", 1.05)
+        W, H = self.W, self.H
+        fit = sc.get("fit", "auto")
+        if fit == "auto":
+            pr = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                                 "stream=width,height:stream_side_data=rotation", "-of", "json", str(src)],
+                                capture_output=True, text=True).stdout
+            st = json.loads(pr)["streams"][0]
+            sw, sh = st["width"], st["height"]
+            if any(abs(int(d.get("rotation", 0))) == 90 for d in st.get("side_data_list", [])):
+                sw, sh = sh, sw
+            fit = "blur" if (sw >= sh) != (W >= H) else "cover"
+        push = f"scale=w='trunc({W}*(1+({z}-1)*t/{D})/2)*2':h=-2:eval=frame,crop={W}:{H}"
+        if fit == "blur":  # whole frame visible (faces never cropped), blurred fill behind
+            vf = (f"fps={self.fps},split[a][b];[a]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+                  f"boxblur=40:2,eq=brightness=-0.08[bg];[b]scale={W}:{H}:force_original_aspect_ratio=decrease[fg];"
+                  f"[bg][fg]overlay=(W-w)/2:(H-h)/2,{push},setsar=1")
+        else:
+            vf = f"fps={self.fps},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},{push},setsar=1"
+        if sc.get("speed"):
+            vf = f"setpts=PTS/{sc['speed']}," + vf
+        if sc.get("look"):
+            vf += "," + {"warm": "colorbalance=rs=.05:bs=-.05", "cool": "colorbalance=rs=-.04:bs=.06",
+                         "bw": "hue=s=0", "punch": "eq=contrast=1.1:saturation=1.15"}.get(sc["look"], "null")
+        log(f"видео {sc['id']}: {src.name} {sc.get('in', 0)}–{sc.get('out', '…')}s")
+        cmd = ["ffmpeg", "-y", "-v", "error", "-stream_loop", "-1", "-ss", str(sc.get("in", 0)), "-i", str(src),
+               "-i", sc["_ovl"], "-filter_complex", f"[0:v]{vf}[b];[b][1:v]overlay=0:0:format=auto,format=yuv420p[v]",
+               "-map", "[v]", "-t", f"{D:.3f}", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "16", sc["_clip"]]
+        subprocess.run(cmd, check=True)
+
+    def footage_audio(self):
+        out = []
+        for sc in self.scenes:
+            if sc.get("template") != "footage" or not sc.get("audio", True):
+                continue
+            f = self.build / "vo" / f"{sc['id']}.live.wav"
+            dur = sc.get("out", sc.get("in", 0) + sc["_t"]["dur"]) - sc.get("in", 0)
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(sc.get("in", 0)), "-t", f"{dur:.3f}",
+                            "-i", str(self.media(sc["src"])), "-vn", "-ac", "2", "-ar", str(audio.SR),
+                            "-af", "highpass=f=70,afade=t=in:d=0.08,areverse,afade=t=in:d=0.25,areverse", str(f)], check=False)
+            if f.exists() and f.stat().st_size > 1000:
+                out.append({"file": str(f), "start": sc["_t"]["start"], "gain": sc.get("volume", 1.0)})
+        return out
 
     # ---------------------------------------------------------- music + mix
     def stage_music(self):
@@ -257,7 +327,7 @@ class Project:
                 sfx.append({"kind": "riser", "start": t["start"] + t["td_in"], "gain": 0.7})
         music = m.get("file") or str(self.build / "music.wav")
         log("сведение: голос + музыка (sidechain) + эффекты → −14 LUFS")
-        audio.mix({"length": self.length, "vo": vo, "music": music, "sfx": sfx}, self.build / "mix.wav",
+        audio.mix({"length": self.length, "vo": vo + self.footage_audio(), "music": music, "sfx": sfx}, self.build / "mix.wav",
                   music_vol=m.get("volume", 0.8), duck=m.get("duck", 0.3))
 
     # ---------------------------------------------------------- edit
@@ -300,6 +370,63 @@ class Project:
         return final
 
 
+def cmd_ingest(slug, files, name=None):
+    """Join uploaded parts (≤30 MB each) into one source file in projects/<slug>/media/."""
+    d = ROOT / "projects" / slug / "media"
+    d.mkdir(parents=True, exist_ok=True)
+    files = [Path(f).resolve() for f in files]
+    name = name or re.sub(r"[_-]?(part)?\d+$", "", files[0].stem) or "clip"
+    out = d / f"{name}.mp4"
+    if len(files) == 1:
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(files[0]), "-c", "copy", "-movflags", "+faststart", str(out)], check=True)
+    else:
+        lst = d / f"{name}.txt"
+        lst.write_text("".join(f"file '{f}'\n" for f in files))
+        r = subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(out)])
+        if r.returncode:  # different codecs/sizes -> re-encode
+            ins = sum((["-i", str(f)] for f in files), [])
+            fc = "".join(f"[{i}:v][{i}:a]" for i in range(len(files))) + f"concat=n={len(files)}:v=1:a=1[v][a]"
+            subprocess.run(["ffmpeg", "-y", "-v", "error", *ins, "-filter_complex", fc, "-map", "[v]", "-map", "[a]",
+                            "-c:v", "libx264", "-crf", "17", "-c:a", "aac", "-b:a", "192k", str(out)], check=True)
+        lst.unlink()
+    log(f"исходник → {out}")
+    cmd_look(slug, out.name)
+
+
+def cmd_look(slug, name, every=None):
+    """Make the footage visible to the director: probe, timecoded contact sheet, speech map."""
+    from PIL import Image, ImageDraw, ImageFont
+    src = ROOT / "projects" / slug / "media" / name
+    info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(src)],
+                                     capture_output=True, text=True).stdout)
+    dur = float(info["format"]["duration"])
+    v = next(s for s in info["streams"] if s["codec_type"] == "video")
+    every = every or max(1.0, round(dur / 24, 1))
+    tmp = src.parent / f".{src.stem}_thumbs"
+    tmp.mkdir(exist_ok=True)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(src), "-vf", f"fps=1/{every},scale=360:-2", str(tmp / "%04d.jpg")], check=True)
+    thumbs = sorted(tmp.glob("*.jpg"))
+    im0 = Image.open(thumbs[0]); tw, th = im0.size
+    cols = 6 if tw > th else 8
+    rows = (len(thumbs) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * tw, rows * (th + 26)), "#111")
+    dr = ImageDraw.Draw(sheet)
+    f = ImageFont.truetype("/usr/share/fonts/opentype/inter/Inter-Bold.otf", 18)
+    for i, p in enumerate(thumbs):
+        x, y = (i % cols) * tw, (i // cols) * (th + 26)
+        sheet.paste(Image.open(p), (x, y))
+        dr.text((x + 6, y + th + 2), f"{int(i * every // 60)}:{i * every % 60:04.1f}", font=f, fill="#ffd166")
+    sheet.save(src.with_suffix(".sheet.jpg"), quality=85)
+    for p in thumbs: p.unlink()
+    tmp.rmdir()
+    sil = subprocess.run(["ffmpeg", "-v", "info", "-i", str(src), "-af", "silencedetect=n=-35dB:d=0.6", "-f", "null", "-"],
+                         capture_output=True, text=True).stderr
+    marks = re.findall(r"silence_(start|end): ([\d.]+)", sil)
+    print(json.dumps({"file": str(src), "duration": round(dur, 2), "size": f"{v['width']}x{v['height']}",
+                      "fps": v.get("r_frame_rate"), "has_audio": any(s["codec_type"] == "audio" for s in info["streams"]),
+                      "silences": marks[:60], "sheet": str(src.with_suffix(".sheet.jpg")), "sheet_every_s": every}, ensure_ascii=False, indent=1))
+
+
 def cmd_new(slug):
     d = ROOT / "projects" / slug
     d.mkdir(parents=True, exist_ok=True)
@@ -319,6 +446,10 @@ def main():
         return
     if a[0] == "new":
         return cmd_new(a[1])
+    if a[0] == "ingest":
+        return cmd_ingest(a[1], a[2:])
+    if a[0] == "look":
+        return cmd_look(a[1], a[2])
     p = Project(a[1])
     t0 = time.time()
     if a[0] == "storyboard":
