@@ -1,6 +1,6 @@
 {
- "title": "Friso — с днём рождения от врачей",
- "logline": "Четыре врача — четыре голоса — одно поздравление.",
+ "title": "Friso — одна большая семья",
+ "logline": "Четыре врача — четыре голоса — одно поздравление: «От всей души — спасибо — с праздником — команда Friso!»",
  "format": "16:9",
  "fps": 30,
  "theme": "gold",
@@ -9,163 +9,424 @@
   "mood": "inspire",
   "key": "D",
   "volume": 0.9,
-  "duck": 0.22
+  "duck": 0.18
  },
- "subtitles": false,
+ "subtitles": true,
  "grade": {
   "grain": 3,
   "vignette": true,
-  "letterbox": true,
+  "letterbox": false,
   "contrast": 1.03,
-  "saturation": 1.04
+  "saturation": 1.05
  },
  "bg": {
   "particles": 110,
   "speed": 0.6
  },
  "transition_duration": 0.8,
+ "doctors_mapping_note": "8005/3350/9695 — имена предположительно, ждём подтверждения; 7046 — по бейджу",
  "scenes": [
   {
    "template": "title",
    "energy": 0.15,
-   "min_duration": 4.5,
-   "visual_note": "Тёмный кадр, золотые частицы, проявляется поздравление",
+   "min_duration": 5,
+   "visual_note": "Золотые частицы, проявляется поздравление",
    "data": {
     "kicker": "Friso",
     "title": "С днём рождения",
-    "subtitle": "поздравляют врачи, которые встречают жизнь с первых минут",
+    "subtitle": "четыре врача — одна большая семья",
     "size": 10
    }
   },
   {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_8005.mov",
+   "in": 1.8,
+   "out": 16.7,
+   "hflip": true,
+   "audio": true,
+   "look": "warm",
    "transition": "fadeblack",
-   "energy": 0.3,
-   "min_duration": 3,
-   "visual_note": "[ВИДЕО] Врач-неонатолог — лучший фрагмент поздравления, плашка: имя / Врач-неонатолог",
-   "data": {
-    "kicker": "Врач-неонатолог",
-    "text": "Поздравление №1 — видео",
-    "size": 5
-   }
+   "energy": 0.25,
+   "captions": [
+    {
+     "start": 2.35,
+     "end": 6.91,
+     "text": "Первые годы жизни малыша – это особенное время."
+    },
+    {
+     "start": 6.91,
+     "end": 11.15,
+     "text": "Время открытий, время улыбок,"
+    },
+    {
+     "start": 11.15,
+     "end": 15.23,
+     "text": "первых шагов и, конечно же,"
+    },
+    {
+     "start": 15.23,
+     "end": 16.59,
+     "text": "большой заботы."
+    },
+    {
+     "start": 16.59,
+     "end": 20.43,
+     "text": "Пусть ваша работа приносит радость,"
+    },
+    {
+     "start": 20.43,
+     "end": 26.11,
+     "text": "а рядом будут люди, которые искренне верят в своё дело."
+    },
+    {
+     "start": 26.11,
+     "end": 30.16,
+     "text": "Спасибо вам за вашу работу, заботу."
+    },
+    {
+     "start": 30.16,
+     "end": 34.19,
+     "text": "С праздником вас, команда Friso!"
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Муборак Ашурматова",
+     "caption": "Врач-неонатолог",
+     "at": 0.9,
+     "hold": 5
+    }
+   },
+   "visual_note": "«Первые годы жизни малыша — особенное время…» (зеркало исправлено)"
   },
   {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_3350.mov",
+   "in": 0.0,
+   "out": 15.1,
+   "audio": true,
+   "look": "warm",
    "transition": "dissolve",
-   "energy": 0.4,
-   "min_duration": 3,
-   "visual_note": "[ВИДЕО] Врач-педиатр — поздравление, плашка",
-   "data": {
-    "kicker": "Врач-педиатр",
-    "text": "Поздравление №2 — видео",
-    "size": 5
-   }
+   "energy": 0.35,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 2.59,
+     "text": "Самое ценное в нашей работе - это видеть,"
+    },
+    {
+     "start": 2.59,
+     "end": 4.55,
+     "text": "как растут и развиваются детки,"
+    },
+    {
+     "start": 4.55,
+     "end": 6.71,
+     "text": "как уходит тревога с лиц родителей и"
+    },
+    {
+     "start": 6.71,
+     "end": 8.07,
+     "text": "появляется улыбка."
+    },
+    {
+     "start": 8.07,
+     "end": 11.35,
+     "text": "Во многом это происходит благодаря вашей компании."
+    },
+    {
+     "start": 11.35,
+     "end": 13.95,
+     "text": "Хочу пожелать вашей команде вдохновения и"
+    },
+    {
+     "start": 13.95,
+     "end": 15.11,
+     "text": "новых достижений."
+    },
+    {
+     "start": 15.11,
+     "end": 16.75,
+     "text": "С праздником вас!"
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Ирина Голубина",
+     "caption": "Врач-педиатр",
+     "at": 0.9,
+     "hold": 5
+    }
+   },
+   "visual_note": "«Самое ценное — видеть, как растут детки… благодаря вашей компании»"
   },
   {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_7046.mov",
+   "in": 0.0,
+   "out": 20.45,
+   "audio": true,
+   "look": "warm",
+   "transition": "dissolve",
+   "energy": 0.45,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 4.47,
+     "text": "Знаете, мне кажется, самое прекрасное в нашей"
+    },
+    {
+     "start": 4.47,
+     "end": 7.41,
+     "text": "работе — это люди, которые со временем"
+    },
+    {
+     "start": 7.41,
+     "end": 9.27,
+     "text": "становятся нам не просто коллегами,"
+    },
+    {
+     "start": 9.27,
+     "end": 10.95,
+     "text": "а настоящей семьей."
+    },
+    {
+     "start": 10.95,
+     "end": 14.79,
+     "text": "Мы все одна оила, одна большая семья,"
+    },
+    {
+     "start": 14.79,
+     "end": 18.34,
+     "text": "которую объединяет любовь к детям,"
+    },
+    {
+     "start": 18.34,
+     "end": 20.44,
+     "text": "забота и общие ценности."
+    },
+    {
+     "start": 20.44,
+     "end": 24.16,
+     "text": "И сегодня хочется сказать спасибо за то, что мы..."
+    },
+    {
+     "start": 24.16,
+     "end": 28.57,
+     "text": "можем быть частью чего-то доброго и важного."
+    },
+    {
+     "start": 28.57,
+     "end": 32.97,
+     "text": "Желаю команде Фриса и отдельно Сартикджану"
+    },
+    {
+     "start": 32.97,
+     "end": 36.68,
+     "text": "процветания, развития и еще больше счастливых"
+    },
+    {
+     "start": 36.68,
+     "end": 39.51,
+     "text": "детских историй с теплом и благодарностью."
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Диля Махмудова",
+     "caption": "Врач-неонатолог",
+     "at": 0.9,
+     "hold": 5
+    }
+   },
+   "visual_note": "«…мы все — одна большая семья» — главный смысл ролика"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_9695.mov",
+   "in": 0.9,
+   "out": 16.0,
+   "audio": true,
+   "look": "warm",
    "transition": "dissolve",
    "energy": 0.5,
-   "min_duration": 3,
-   "visual_note": "[ВИДЕО] Врач-педиатр — поздравление, плашка",
-   "data": {
-    "kicker": "Врач-педиатр",
-    "text": "Поздравление №3 — видео",
-    "size": 5
-   }
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 3.59,
+     "text": "От всей души поздравляю компанию и всю ее"
+    },
+    {
+     "start": 3.59,
+     "end": 5.19,
+     "text": "команду с юбилеем."
+    },
+    {
+     "start": 5.19,
+     "end": 8.34,
+     "text": "Желаю всем здоровья, процветания,"
+    },
+    {
+     "start": 8.34,
+     "end": 12.07,
+     "text": "успеха в работе, мирного неба над нашими головами."
+    },
+    {
+     "start": 12.07,
+     "end": 14.67,
+     "text": "И надеюсь, мы будем еще долго сотрудничать"
+    },
+    {
+     "start": 14.67,
+     "end": 15.99,
+     "text": "вместе с вами."
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Наргиза",
+     "caption": "Врач-педиатр",
+     "at": 0.9,
+     "hold": 5
+    }
+   },
+   "visual_note": "«От всей души поздравляю… долго сотрудничать вместе с вами»"
   },
   {
-   "template": "statement",
-   "transition": "dissolve",
-   "energy": 0.6,
-   "min_duration": 3,
-   "riser": true,
-   "visual_note": "[ВИДЕО] Врач-неонатолог (второй) — поздравление, плашка",
-   "data": {
-    "kicker": "Врач-неонатолог",
-    "text": "Поздравление №4 — видео",
-    "size": 5
-   }
-  },
-  {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_9695.mov",
+   "in": 0.95,
+   "out": 1.95,
+   "audio": true,
+   "volume": 1.1,
    "transition": "fadewhite",
+   "transition_duration": 0.5,
    "energy": 0.75,
-   "duration": 1.4,
+   "riser": true,
+   "min_duration": 0.5,
+   "zoom": 1.12,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*От всей души*",
+     "size": 11,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
    "whoosh": false,
-   "visual_note": "[ВИДЕО] Врач 1 — крупно, одно слово",
-   "data": {
-    "text": "*С*",
-    "size": 22,
-    "style": "blur"
-   }
+   "visual_note": "ФИНАЛ 1/4: «От всей души»",
+   "audio_out": 1.72
   },
   {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_7046.mov",
+   "in": 21.95,
+   "out": 22.75,
+   "audio": true,
+   "volume": 1.1,
    "transition": "cut",
    "energy": 0.8,
-   "duration": 1.4,
-   "visual_note": "[ВИДЕО] Врач 2 — одно слово",
-   "data": {
-    "text": "*днём*",
-    "size": 18,
-    "style": "blur"
-   }
+   "min_duration": 0.5,
+   "zoom": 1.12,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*спасибо*",
+     "size": 13,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "visual_note": "ФИНАЛ 2/4: «спасибо»",
+   "audio_out": 22.52
   },
   {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_3350.mov",
+   "in": 15.08,
+   "out": 16.9,
+   "audio": true,
+   "volume": 1.1,
    "transition": "cut",
    "energy": 0.85,
-   "duration": 1.4,
-   "visual_note": "[ВИДЕО] Врач 3 — одно слово",
-   "data": {
-    "text": "*рождения*",
-    "size": 15,
-    "style": "blur"
-   }
+   "min_duration": 0.5,
+   "zoom": 1.12,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*с праздником*",
+     "size": 12,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "visual_note": "ФИНАЛ 3/4: «С праздником вас!»",
+   "audio_out": 16.67
   },
   {
-   "template": "statement",
+   "template": "footage",
+   "src": "inbox:IMG_8005.mov",
+   "in": 32.85,
+   "out": 34.6,
+   "hflip": true,
+   "audio": true,
+   "volume": 1.1,
    "transition": "cut",
    "energy": 0.95,
-   "duration": 1.8,
    "hit": true,
-   "visual_note": "[ВИДЕО] Врач 4 — финальное слово, удар",
-   "data": {
-    "text": "*Friso!*",
-    "size": 20,
-    "style": "blur"
-   }
+   "min_duration": 0.5,
+   "zoom": 1.12,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*команда Friso!*",
+     "size": 12,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "visual_note": "ФИНАЛ 4/4: «Команда Friso!» — удар",
+   "audio_out": 34.25
   },
   {
    "template": "outro",
    "transition": "fadeblack",
    "energy": 0.3,
-   "min_duration": 5,
-   "visual_note": "Финал: тёплое свечение, итоговая фраза",
+   "min_duration": 6,
+   "hold": 1.5,
+   "visual_note": "Итог: одна большая семья",
    "data": {
-    "title": "Четыре врача. *Одно* поздравление.",
+    "title": "Одна большая *семья*.",
     "cta": "С днём рождения, Friso!",
     "logo": "♥",
-    "size": 6.5
+    "size": 7
    }
-  }
- ],
- "doctors": [
-  {
-   "name": "Ирина Голубина",
-   "role": "Врач-педиатр"
-  },
-  {
-   "name": "Наргиза",
-   "role": "Врач-педиатр"
-  },
-  {
-   "name": "Муборак Ашурматова",
-   "role": "Врач-неонатолог"
-  },
-  {
-   "name": "Диля Ахмедова",
-   "role": "Врач-неонатолог"
   }
  ]
 }

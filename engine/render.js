@@ -54,7 +54,7 @@ async function renderClip(page, clip) {
     for (const s of job.stills) {
       await prep(page, s.scene);
       await page.evaluate(t => window.seek(t), s.t);
-      await page.screenshot({ path: s.out, type: 'png' });
+      await page.screenshot({ path: s.out, type: 'png', omitBackground: !!s.scene.transparent });
     }
   }
   await browser.close();

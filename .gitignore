@@ -7,3 +7,6 @@ projects/*/media/*.mov
 projects/ftest/
 inbox/*
 !inbox/README.txt
+assets/asr/
+assets/asr/
+projects/*/build/

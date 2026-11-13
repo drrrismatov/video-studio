@@ -46,13 +46,17 @@
 
   // "*word*" -> accent, "_word_" -> accent2
   function splitWords(text) {
+    // *several words* -> accent, _words_ -> accent2 (markers may span many words)
     const out = [];
+    let mode = '';
     String(text).split(/(\s+)/).forEach(tok => {
       if (!tok) return;
       if (/^\s+$/.test(tok)) { out.push({ space: tok }); return; }
-      let cls = '';
-      if (/^\*.*\*[.,!?:;]*$/.test(tok)) { cls = 'accent glow'; tok = tok.replace(/\*/g, ''); }
-      else if (/^_.*_[.,!?:;]*$/.test(tok)) { cls = 'accent2'; tok = tok.replace(/_/g, ''); }
+      let cls = mode;
+      if (tok.startsWith('*')) { mode = mode ? '' : 'accent glow'; cls = 'accent glow'; tok = tok.slice(1); }
+      else if (tok.startsWith('_')) { mode = mode ? '' : 'accent2'; cls = 'accent2'; tok = tok.slice(1); }
+      const m = tok.match(/[*_]([.,!?:;…]*)$/);
+      if (m) { tok = tok.slice(0, m.index) + m[1]; mode = ''; }
       out.push({ word: tok, cls });
     });
     return out;
@@ -195,7 +199,16 @@
   };
 
   T.statement = (d, D) => {
-    const box = h('div', '', null, { maxWidth: d.width || '84%', textAlign: d.align || 'center' });
+    const box = h('div', '', null, { maxWidth: d.width || '84%', textAlign: d.align || 'center',
+      ...(d.pos === 'bottom' ? { position: 'absolute', bottom: '9%', left: '50%', translate: '-50% 0', width: '84%' } : {}) });
+    if (d.shadow) box.style.textShadow = '0 4px 30px rgba(0,0,0,.85), 0 0 60px rgba(0,0,0,.6)';
+    let root = box, band = null;
+    if (d.pos === 'bottom') {  // soft dark band so gold words read on bright footage
+      band = h('div', '', null, { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%',
+        background: 'linear-gradient(0deg, rgba(8,6,12,.85) 0%, rgba(8,6,12,.55) 45%, rgba(8,6,12,0) 100%)' });
+      root = h('div', '', null, { position: 'absolute', inset: 0 });
+      root.append(band, box);
+    }
     const k = d.kicker ? h('div', 'kicker', esc(d.kicker), { justifyContent: d.align === 'left' ? 'flex-start' : 'center', marginBottom: U(2.5) }) : null;
     const tx = wordsEl(d.text || '', 'h1');
     tx.el.style.fontSize = U(d.size || 7);
@@ -205,9 +218,10 @@
     box.appendChild(tx.el);
     const span = Math.max(0.04, Math.min(0.14, (D * 0.45) / Math.max(tx.items.length, 1)));
     return {
-      el: box, update(t) {
+      el: root, update(t) {
+        if (band) band.style.opacity = E.out(P(t, 0, 0.25));
         if (k) fadeUp(k, t, 0.1, 0.6, 2);
-        revealWords(tx.items, t, 0.3, d.stagger || span, 0.6, d.style || 'blur');
+        revealWords(tx.items, t, d.delay ?? 0.3, d.stagger || span, 0.6, d.style || 'blur');
         box.style.transform = `scale(${1 + 0.04 * t / D})`;
       }
     };
@@ -423,6 +437,7 @@
     if (sc.accent) r.setProperty('--accent', sc.accent);
     initBg();
     if (sc.transparent) { document.documentElement.style.background = 'transparent'; document.body.style.background = 'transparent'; }
+    document.getElementById('overlay').style.background = 'none';
     contentEl = document.getElementById('content');
     subsEl = document.getElementById('subs');
     overlayEl = document.getElementById('overlay');

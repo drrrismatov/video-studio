@@ -131,6 +131,12 @@ class Project:
             sc["_subs"] = self.subtitles(sc) if self.script.get("subtitles", True) else []
 
     def subtitles(self, sc):
+        if sc.get("captions") is not None:
+            if sc.get("subs") is False:
+                return []
+            off = sc.get("in", 0)
+            return [{"start": round(c["start"] - off, 2), "end": round(c["end"] - off, 2), "text": c["text"]}
+                    for c in sc["captions"] if c["end"] > off and c["start"] < sc.get("out", 1e9)]
         text = (sc.get("narration") or "").replace("*", "").replace("_", "").strip()
         if not text or not sc.get("_vo") or sc.get("subs") is False:
             return []
@@ -185,7 +191,20 @@ class Project:
             stills.append({"scene": p, "t": round(p["duration"] * 0.62, 2),
                            "out": str(self.build / "stills" / f"{sc['id']}.png")})
         log(f"раскадровка: {len(stills)} кадров")
+        for st, sc in zip(stills, self.scenes):
+            if sc.get("template") == "footage":
+                ov = sc.get("overlay") or {}
+                st["scene"].update(template=ov.get("template", "none"), data=ov.get("data", {}), transparent=True)
+                if sc.get("overlay", {}).get("template") == "lower":
+                    st["t"] = 2.5
         self.run_render({"width": self.W, "height": self.H, "fps": self.fps, "stills": stills})
+        for st, sc in zip(stills, self.scenes):
+            if sc.get("template") == "footage":
+                bg = self.build / "stills" / f"{sc['id']}.bg.png"
+                subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{sc.get('in', 0) + min(st['t'], sc['out'] - sc.get('in', 0) - 0.1):.2f}",
+                                "-i", str(self.media(sc["src"])), "-i", st["out"], "-filter_complex",
+                                f"[0:v]{self.footage_vf(sc)}[b];[b][1:v]overlay=0:0", "-frames:v", "1", str(bg)], check=True)
+                bg.replace(st["out"])
         self.contact_sheet()
         self.write_storyboard_md()
 
@@ -273,8 +292,8 @@ class Project:
     def media(self, src) -> Path:
         return resolve_src(src, self.dir)
 
-    def render_footage(self, sc):
-        """Real video: trim, cover-crop to format, slow push-in, grade, titles/subs overlay. Faces untouched."""
+    def footage_vf(self, sc):
+        """Real video: cover/blur-fit to format, slow push-in, grade, unmirror. Faces untouched."""
         src, t = self.media(sc["src"]), sc["_t"]
         D, z = t["dur"], sc.get("zoom", 1.05)
         W, H = self.W, self.H
@@ -297,9 +316,17 @@ class Project:
             vf = f"fps={self.fps},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},{push},setsar=1"
         if sc.get("speed"):
             vf = f"setpts=PTS/{sc['speed']}," + vf
+        if sc.get("hflip"):  # selfie camera mirror -> true orientation (text readable)
+            vf = "hflip," + vf
         if sc.get("look"):
             vf += "," + {"warm": "colorbalance=rs=.05:bs=-.05", "cool": "colorbalance=rs=-.04:bs=.06",
                          "bw": "hue=s=0", "punch": "eq=contrast=1.1:saturation=1.15"}.get(sc["look"], "null")
+        return vf
+
+    def render_footage(self, sc):
+        src, t = self.media(sc["src"]), sc["_t"]
+        D = t["dur"]
+        vf = self.footage_vf(sc)
         log(f"видео {sc['id']}: {src.name} {sc.get('in', 0)}–{sc.get('out', '…')}s")
         cmd = ["ffmpeg", "-y", "-v", "error", "-stream_loop", "-1", "-ss", str(sc.get("in", 0)), "-i", str(src),
                "-i", sc["_ovl"], "-filter_complex", f"[0:v]{vf}[b];[b][1:v]overlay=0:0:format=auto,format=yuv420p[v]",
@@ -312,10 +339,10 @@ class Project:
             if sc.get("template") != "footage" or not sc.get("audio", True):
                 continue
             f = self.build / "vo" / f"{sc['id']}.live.wav"
-            dur = sc.get("out", sc.get("in", 0) + sc["_t"]["dur"]) - sc.get("in", 0)
+            dur = sc.get("audio_out", sc.get("out", sc.get("in", 0) + sc["_t"]["dur"])) - sc.get("in", 0)
             subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(sc.get("in", 0)), "-t", f"{dur:.3f}",
                             "-i", str(self.media(sc["src"])), "-vn", "-ac", "2", "-ar", str(audio.SR),
-                            "-af", "highpass=f=70,afade=t=in:d=0.08,areverse,afade=t=in:d=0.25,areverse", str(f)], check=False)
+                            "-af", "highpass=f=70,afade=t=in:d=0.04,areverse,afade=t=in:d=0.08,areverse", str(f)], check=False)
             if f.exists() and f.stat().st_size > 1000:
                 out.append({"file": str(f), "start": sc["_t"]["start"], "gain": sc.get("volume", 1.0)})
         return out
@@ -486,9 +513,13 @@ def cmd_pull():
         return
     got = 0
     for a in rel.get("assets", []):
-        if Path(a["name"]).suffix.lower() not in VIDEO_EXT:
-            continue
-        dst = d / a["name"]
+        name = a["name"].removeprefix("default.")
+        ctype = a.get("content_type", "")
+        if Path(name).suffix.lower() not in VIDEO_EXT:
+            if not ctype.startswith("video/"):
+                continue
+            name += {"video/quicktime": ".mov", "video/x-matroska": ".mkv", "video/webm": ".webm"}.get(ctype, ".mp4")
+        dst = d / name
         if dst.exists() and dst.stat().st_size == a["size"]:
             continue
         log(f"скачиваю {a['name']} ({a['size'] / 2**20:.0f} МБ)")
