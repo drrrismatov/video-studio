@@ -1,0 +1,429 @@
+"""Audio engine: voiceover (Piper neural TTS), procedural score, SFX, mixing.
+
+Everything runs offline. Sample rate 44.1 kHz, stereo float32 arrays shaped (n, 2).
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import wave
+from pathlib import Path
+
+import numpy as np
+from scipy import signal
+
+SR = 44100
+ROOT = Path(__file__).resolve().parent.parent
+VOICES = {
+    "dmitri": "vits-piper-ru_RU-dmitri-medium/ru_RU-dmitri-medium.onnx",
+    "denis": "vits-piper-ru_RU-denis-medium/ru_RU-denis-medium.onnx",
+    "irina": "vits-piper-ru_RU-irina-medium/ru_RU-irina-medium.onnx",
+}
+
+# ---------------------------------------------------------------- utilities
+
+def rng(seed: int) -> np.random.Generator:
+    return np.random.default_rng(seed)
+
+
+def read_wav(path: Path) -> np.ndarray:
+    """Read any audio via ffmpeg -> stereo float32 @ SR."""
+    raw = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "2", "-ar", str(SR), "-"],
+        check=True, capture_output=True).stdout
+    return np.frombuffer(raw, dtype=np.float32).reshape(-1, 2).copy()
+
+
+def write_wav(path: Path, x: np.ndarray) -> None:
+    x = np.clip(x, -1, 1)
+    pcm = (x * 32767).astype("<i2")
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+
+
+def stereo(m: np.ndarray, pan: float = 0.0) -> np.ndarray:
+    l = np.cos((pan + 1) * np.pi / 4)
+    r = np.sin((pan + 1) * np.pi / 4)
+    return np.stack([m * l, m * r], axis=1) * np.sqrt(2)
+
+
+def place(buf: np.ndarray, x: np.ndarray, start: float, gain: float = 1.0) -> None:
+    i = int(start * SR)
+    if i >= len(buf) or i + len(x) <= 0:
+        return
+    if i < 0:
+        x, i = x[-i:], 0
+    n = min(len(x), len(buf) - i)
+    buf[i:i + n] += x[:n] * gain
+
+
+def lowpass(x, cutoff, order=2):
+    sos = signal.butter(order, min(cutoff, SR / 2 - 100) / (SR / 2), "low", output="sos")
+    return signal.sosfilt(sos, x, axis=0)
+
+
+def highpass(x, cutoff, order=2):
+    sos = signal.butter(order, cutoff / (SR / 2), "high", output="sos")
+    return signal.sosfilt(sos, x, axis=0)
+
+
+def bandpass(x, lo, hi, order=2):
+    sos = signal.butter(order, [lo / (SR / 2), hi / (SR / 2)], "band", output="sos")
+    return signal.sosfilt(sos, x, axis=0)
+
+
+def env_adsr(n, a=0.01, d=0.1, s=0.8, r=0.2):
+    t = np.arange(n) / SR
+    dur = n / SR
+    e = np.ones(n) * s
+    e = np.where(t < a, t / max(a, 1e-4), e)
+    e = np.where((t >= a) & (t < a + d), 1 - (1 - s) * (t - a) / max(d, 1e-4), e)
+    rel_start = max(dur - r, a + d)
+    e = np.where(t >= rel_start, e * np.clip(1 - (t - rel_start) / max(r, 1e-4), 0, 1), e)
+    return e
+
+
+_IR_CACHE: dict = {}
+
+
+def reverb(x: np.ndarray, size: float = 2.8, mix: float = 0.3, seed: int = 7) -> np.ndarray:
+    key = (size, seed)
+    if key not in _IR_CACHE:
+        n = int(size * SR)
+        g = rng(seed)
+        t = np.arange(n) / SR
+        decay = np.exp(-6.9 * t / size)
+        ir = g.standard_normal((n, 2)) * decay[:, None]
+        ir = lowpass(ir, 6000)
+        ir[: int(0.012 * SR)] = 0  # predelay
+        ir /= np.sqrt((ir ** 2).sum(axis=0))
+        _IR_CACHE[key] = ir
+    ir = _IR_CACHE[key]
+    wet = np.stack([signal.fftconvolve(x[:, c], ir[:, c])[: len(x)] for c in range(2)], axis=1)
+    return x * (1 - mix) + wet * mix
+
+
+def delay(x, time=0.375, fb=0.35, mix=0.3, pingpong=True):
+    d = int(time * SR)
+    out = x.copy()
+    tap = x.copy()
+    for k in range(1, 6):
+        tap = np.roll(tap, d, axis=0) * fb
+        tap[:d] = 0
+        if pingpong:
+            tap = tap[:, ::-1]
+        out += tap * mix
+    return out
+
+
+def softclip(x, drive=1.0):
+    return np.tanh(x * drive) / np.tanh(drive)
+
+
+def note_hz(midi: float) -> float:
+    return 440.0 * 2 ** ((midi - 69) / 12)
+
+# ---------------------------------------------------------------- voiceover
+
+def tts(text: str, out: Path, voice: str = "dmitri", speed: float = 1.0) -> float:
+    """Synthesize text with Piper; returns duration seconds."""
+    from piper import PiperVoice, SynthesisConfig
+
+    model = ROOT / "assets" / "voices" / VOICES[voice]
+    v = PiperVoice.load(str(model))
+    cfg = SynthesisConfig(length_scale=1.0 / speed, noise_scale=0.6, noise_w_scale=0.7)
+    tmp = out.with_suffix(".raw.wav")
+    with wave.open(str(tmp), "wb") as w:
+        v.synthesize_wav(text, w, syn_config=cfg)
+    # polish: high-pass, gentle compression, presence, normalise peak
+    x = read_wav(tmp)
+    tmp.unlink()
+    x = highpass(x, 80)
+    # trim leading/trailing silence
+    mag = np.abs(x).max(axis=1)
+    idx = np.where(mag > 0.01)[0]
+    if len(idx):
+        x = x[max(idx[0] - int(0.03 * SR), 0): idx[-1] + int(0.12 * SR)]
+    env = signal.lfilter([0.002], [1, -0.998], np.abs(x).mean(axis=1))
+    gain = 1 / np.maximum(env / (env.max() + 1e-9), 0.35) ** 0.35
+    x = x * gain[:, None]
+    x = x / (np.abs(x).max() + 1e-9) * 0.9
+    x = reverb(x, size=0.6, mix=0.06)
+    write_wav(out, x)
+    return len(x) / SR
+
+# ---------------------------------------------------------------- music
+
+SCALES = {
+    "minor": [0, 2, 3, 5, 7, 8, 10],
+    "major": [0, 2, 4, 5, 7, 9, 11],
+    "dorian": [0, 2, 3, 5, 7, 9, 10],
+    "harmonic": [0, 2, 3, 5, 7, 8, 11],
+}
+KEYS = {k: i for i, k in enumerate(["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"])}
+
+MOODS = {
+    # bpm, scale, progression (scale degrees, 1-based), brightness, swing of arp
+    "cinematic": dict(bpm=84, scale="minor", prog=[1, 6, 3, 7], bright=2400, arp="up"),
+    "epic": dict(bpm=96, scale="minor", prog=[1, 6, 7, 5], bright=3200, arp="updown"),
+    "tense": dict(bpm=100, scale="harmonic", prog=[1, 1, 6, 5], bright=1800, arp="pulse"),
+    "calm": dict(bpm=72, scale="major", prog=[1, 5, 6, 4], bright=2000, arp="slow"),
+    "upbeat": dict(bpm=118, scale="major", prog=[1, 5, 6, 4], bright=4200, arp="updown"),
+    "tech": dict(bpm=110, scale="dorian", prog=[1, 4, 7, 1], bright=3600, arp="pulse"),
+    "inspire": dict(bpm=92, scale="major", prog=[6, 4, 1, 5], bright=3000, arp="up"),
+}
+
+
+def chord_notes(root_midi: int, scale: list[int], degree: int) -> list[int]:
+    notes = []
+    for step in (0, 2, 4):
+        i = degree - 1 + step
+        notes.append(root_midi + scale[i % 7] + 12 * (i // 7))
+    return notes
+
+
+def supersaw(freq, n, voices=5, detune=0.012, seed=0):
+    g = rng(seed)
+    t = np.arange(n) / SR
+    outl = np.zeros(n)
+    outr = np.zeros(n)
+    for v in range(voices):
+        d = 1 + detune * (v - (voices - 1) / 2) / ((voices - 1) / 2 or 1)
+        ph = g.random()
+        saw = 2 * ((freq * d * t + ph) % 1) - 1
+        pan = (v / max(voices - 1, 1)) * 2 - 1
+        outl += saw * np.cos((pan + 1) * np.pi / 4)
+        outr += saw * np.sin((pan + 1) * np.pi / 4)
+    return np.stack([outl, outr], axis=1) / voices
+
+
+def pluck(freq, n, bright=3000):
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for h in range(1, 9):
+        x += np.sin(2 * np.pi * freq * h * t) / h * np.exp(-t * (6 + h * 3.5))
+    x *= np.minimum(t / 0.003, 1)
+    return lowpass(x, bright)
+
+
+def kick(n=int(0.45 * SR)):
+    t = np.arange(n) / SR
+    f = 45 + 95 * np.exp(-t * 28)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    return np.sin(ph) * np.exp(-t * 7) + 0.3 * np.sin(ph * 2) * np.exp(-t * 30)
+
+
+def snare(n=int(0.3 * SR), seed=3):
+    t = np.arange(n) / SR
+    noise = bandpass(rng(seed).standard_normal(n), 1200, 9000) * np.exp(-t * 18)
+    tone = np.sin(2 * np.pi * 190 * t) * np.exp(-t * 25)
+    return noise * 0.8 + tone * 0.5
+
+
+def hat(n=int(0.08 * SR), seed=5):
+    t = np.arange(n) / SR
+    return highpass(rng(seed).standard_normal(n), 7000) * np.exp(-t * 60) * 0.5
+
+
+def compose(length: float, sections: list[dict], mood: str = "cinematic", key: str = "A",
+            bpm: int | None = None, seed: int = 1) -> np.ndarray:
+    """sections: list of {start, energy(0-1)} sorted by start. Returns stereo score."""
+    m = MOODS.get(mood, MOODS["cinematic"])
+    bpm = bpm or m["bpm"]
+    scale = SCALES[m["scale"]]
+    prog = m["prog"]
+    beat = 60 / bpm
+    bar = beat * 4
+    n_total = int((length + 3) * SR)
+    pad = np.zeros((n_total, 2))
+    bass = np.zeros((n_total, 2))
+    arp = np.zeros((n_total, 2))
+    drums = np.zeros((n_total, 2))
+    root = 45 + KEYS.get(key, 9) % 12  # around A2
+    if root > 50:
+        root -= 12
+
+    def energy_at(t):
+        e = sections[0]["energy"] if sections else 0.5
+        for s in sections:
+            if s["start"] <= t + 1e-6:
+                e = s["energy"]
+        return e
+
+    n_bars = int(np.ceil(length / bar)) + 1
+    k, sn, hh = kick(), snare(seed=seed + 3), hat(seed=seed + 5)
+    for b in range(n_bars):
+        t0 = b * bar
+        if t0 >= length + bar:
+            break
+        e = energy_at(t0)
+        deg = prog[b % len(prog)]
+        notes = chord_notes(root + 12, scale, deg)
+        last = t0 + bar >= length
+        nlen = int((bar + (2.5 if last else 0.25)) * SR)
+        # pad: supersaw chord, opens with energy
+        ch = np.zeros((nlen, 2))
+        for j, nt in enumerate(notes + [notes[0] + 12]):
+            ch += supersaw(note_hz(nt), nlen, seed=seed * 100 + b * 7 + j)
+        cutoff = 500 + m["bright"] * (0.25 + 0.75 * e)
+        ch = lowpass(ch, cutoff) * env_adsr(nlen, a=0.35 if b == 0 else 0.08, d=0.2, s=0.9,
+                                             r=2.4 if last else 0.3)[:, None]
+        place(pad, ch * 0.22, t0)
+        # sub bass
+        bn = note_hz(root + scale[(deg - 1) % 7])
+        if e < 0.45:
+            ln = nlen
+            tt = np.arange(ln) / SR
+            x = np.sin(2 * np.pi * bn * tt) * env_adsr(ln, a=0.05, s=1, r=1.5 if last else 0.25)
+            place(bass, stereo(softclip(x, 1.5)) * 0.32, t0)
+        else:
+            for i8 in range(8):
+                ln = int(beat / 2 * 0.9 * SR)
+                tt = np.arange(ln) / SR
+                x = np.sin(2 * np.pi * bn * tt) + 0.3 * np.sin(4 * np.pi * bn * tt)
+                x *= env_adsr(ln, a=0.004, d=0.08, s=0.7, r=0.04)
+                place(bass, stereo(softclip(x, 2)) * 0.28, t0 + i8 * beat / 2)
+        # arpeggio
+        if e >= 0.25 and not last:
+            pattern = {
+                "up": [0, 1, 2, 3],
+                "updown": [0, 1, 2, 3, 2, 1],
+                "pulse": [0, 0, 2, 0],
+                "slow": [0, 2, 1, 3],
+            }[m["arp"]]
+            pool = notes + [notes[0] + 12]
+            step = beat / 4 if (e > 0.55 and m["arp"] != "slow") else beat / 2
+            steps = int(round(bar / step))
+            for s_i in range(steps):
+                nt = pool[pattern[s_i % len(pattern)] % len(pool)] + 12
+                ln = int(0.5 * SR)
+                x = pluck(note_hz(nt), ln, m["bright"])
+                pan = 0.5 * np.sin(s_i * 0.8)
+                acc = 1.0 if s_i % 4 == 0 else 0.7
+                place(arp, stereo(x, pan) * 0.10 * acc, t0 + s_i * step)
+        # drums
+        if not last:
+            for bt in range(4):
+                tb = t0 + bt * beat
+                if e >= 0.65 or (e >= 0.4 and bt in (0, 2)):
+                    place(drums, stereo(k) * 0.55, tb)
+                if e >= 0.65 and bt in (1, 3):
+                    place(drums, stereo(sn) * 0.28, tb)
+                if e >= 0.5:
+                    for h in range(2):
+                        place(drums, stereo(hh, 0.3 if h else -0.3) * (0.18 if h else 0.1), tb + h * beat / 2)
+
+    arp = delay(arp, time=beat * 0.75, fb=0.4, mix=0.35)
+    mix = reverb(pad, 3.2, 0.45) + bass + reverb(arp, 2.4, 0.3) + reverb(drums, 1.2, 0.12)
+    mix = highpass(mix, 30)
+    mix = softclip(mix * 1.2, 1.3) * 0.8
+    out = mix[: int(length * SR)]
+    fade = int(min(2.0, length / 4) * SR)
+    out[-fade:] *= np.linspace(1, 0, fade)[:, None] ** 1.5
+    out[: int(0.05 * SR)] *= np.linspace(0, 1, int(0.05 * SR))[:, None]
+    return out
+
+# ---------------------------------------------------------------- sfx
+
+def sfx_whoosh(dur=0.9, seed=11, rev=False):
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = rng(seed).standard_normal(n)
+    out = np.zeros(n)
+    # sweep band-pass via chunks
+    chunks = 24
+    for c in range(chunks):
+        a, b = c * n // chunks, (c + 1) * n // chunks
+        p = c / chunks
+        fc = 300 + 5000 * (np.sin(np.pi * p) ** 2)
+        seg = bandpass(x, fc * 0.6, min(fc * 1.6, SR / 2 - 200))[a:b]
+        out[a:b] = seg
+    e = np.sin(np.pi * t / dur) ** 2
+    if rev:
+        e = (t / dur) ** 2 * (t < dur)
+    out *= e
+    return stereo(out / (np.abs(out).max() + 1e-9), 0) * 0.5
+
+
+def sfx_impact(seed=12):
+    n = int(2.5 * SR)
+    t = np.arange(n) / SR
+    f = 32 + 70 * np.exp(-t * 10)
+    boom = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 2.2)
+    crack = lowpass(rng(seed).standard_normal(n), 3000) * np.exp(-t * 14) * 0.5
+    x = stereo(softclip(boom + crack, 2))
+    return reverb(x, 3.0, 0.35) * 0.8
+
+
+def sfx_riser(dur=2.0, seed=13):
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    x = rng(seed).standard_normal(n)
+    out = np.zeros(n)
+    chunks = 30
+    for c in range(chunks):
+        a, b = c * n // chunks, (c + 1) * n // chunks
+        fc = 400 * (2 ** (5 * c / chunks))
+        out[a:b] = bandpass(x, fc * 0.7, min(fc * 1.4, SR / 2 - 200))[a:b]
+    tone = np.sin(2 * np.pi * np.cumsum(200 * 2 ** (2 * t / dur)) / SR) * 0.3
+    out = (out / (np.abs(out).max() + 1e-9) + tone) * (t / dur) ** 2
+    return reverb(stereo(out) * 0.35, 1.5, 0.3)
+
+
+def sfx_tick(seed=14):
+    n = int(0.06 * SR)
+    t = np.arange(n) / SR
+    x = np.sin(2 * np.pi * 2200 * t) * np.exp(-t * 90) + highpass(rng(seed).standard_normal(n), 5000) * np.exp(-t * 200) * 0.3
+    return stereo(x) * 0.25
+
+# ---------------------------------------------------------------- mix
+
+def mix(timeline: dict, out: Path, music_vol: float = 0.8, duck: float = 0.35) -> None:
+    """timeline: {length, vo:[{file,start}], music:file|None, sfx:[{kind,start,gain}]}"""
+    L = timeline["length"]
+    n = int(L * SR)
+    vo = np.zeros((n, 2))
+    for c in timeline["vo"]:
+        place(vo, read_wav(Path(c["file"])), c["start"])
+    mus = np.zeros((n, 2))
+    if timeline.get("music"):
+        mx = read_wav(Path(timeline["music"]))
+        place(mus, mx, 0)
+    # sidechain: duck music under voice (smooth envelope, 150ms attack, 600ms release)
+    env = np.abs(vo).mean(axis=1)
+    env = np.convolve(env, np.ones(int(0.05 * SR)) / int(0.05 * SR), mode="same")
+    active = (env > 0.01).astype(float)
+    a = np.exp(-1 / (0.15 * SR))
+    r = np.exp(-1 / (0.6 * SR))
+    sm = signal.lfilter([1 - r], [1, -r], active)
+    sm = np.maximum(sm, signal.lfilter([1 - a], [1, -a], active))
+    gain = 1 - (1 - duck) * np.clip(sm * 1.5, 0, 1)
+    mus *= gain[:, None] * music_vol
+    fx = np.zeros((n, 2))
+    gens = {"whoosh": sfx_whoosh, "impact": sfx_impact, "riser": sfx_riser, "tick": sfx_tick}
+    for i, s in enumerate(timeline.get("sfx", [])):
+        g = gens[s["kind"]]
+        x = g(seed=20 + i)
+        start = s["start"] - (len(x) / SR if s["kind"] == "riser" else 0)
+        if s["kind"] == "whoosh":
+            start -= 0.45
+        place(fx, x, start, s.get("gain", 1.0))
+    total = vo * 1.0 + mus + fx * 0.6
+    total = softclip(total, 1.1) * 0.95
+    tmp = out.with_suffix(".premaster.wav")
+    write_wav(tmp, total)
+    # loudness master to -14 LUFS (streaming standard), true peak -1 dB
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(tmp), "-af",
+                    "loudnorm=I=-14:TP=-1.0:LRA=11", "-ar", str(SR), str(out)], check=True)
+    tmp.unlink()
+
+
+if __name__ == "__main__":
+    import sys
+    if sys.argv[1] == "score":
+        secs = json.loads(sys.argv[3]) if len(sys.argv) > 3 else [{"start": 0, "energy": 0.3}, {"start": 8, "energy": 0.7}]
+        x = compose(20, secs, mood=sys.argv[2])
+        write_wav(Path(f"/tmp/claude-0/score_{sys.argv[2]}.wav"), x)

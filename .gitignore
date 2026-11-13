@@ -1,0 +1,4 @@
+assets/voices/
+projects/*/build/
+projects/*/out/*.mp4
+__pycache__/
