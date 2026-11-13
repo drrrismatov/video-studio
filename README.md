@@ -1,3 +1,5 @@
+<img src="assets/brand/VideoStudio.png" width="128" align="right">
+
 # 🎬 AI Video Studio
 
 **Один промпт → сценарий → ваше «да» → готовый ролик.** Голос, музыка, монтаж, переходы, титры, сведение.
