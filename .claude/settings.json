@@ -1,4 +1,10 @@
 {
+  "permissions": {
+    "deny": [
+      "Edit(./inbox/**)",
+      "Write(./inbox/**)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "cd \"$CLAUDE_PROJECT_DIR\" && ./setup.sh >/dev/null 2>&1 || echo 'video-studio: setup.sh failed — run it manually'" } ] }

@@ -6,7 +6,8 @@
   python3 studio.py build <slug> [--draft]     # full production: VO, render, music, edit, mix
   python3 studio.py stage <slug> vo|render|music|edit
   python3 studio.py ingest <slug> part1.mp4 part2.mp4 …   # join uploaded parts -> media/
-  python3 studio.py look <slug> <file.mp4>     # contact sheet + speech map of footage
+  python3 studio.py look <slug> <file.mp4|inbox:file.mp4>  # contact sheet + speech map of footage
+  python3 studio.py inbox                      # videos in the Inbox folder (read-only source)
   python3 studio.py voices                     # list voices
 
 Projects live in projects/<slug>/ ; final video -> projects/<slug>/out/<slug>.mp4
@@ -25,6 +26,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "engine"))
 import audio  # noqa: E402
+
+VIDEO_EXT = {".mp4", ".mov", ".m4v", ".mkv", ".avi", ".webm", ".mts", ".3gp"}
+
+
+def inbox_dir() -> Path:
+    """Папка «Входящие»: студия только ЧИТАЕТ отсюда видео. Путь: $STUDIO_INBOX или ./inbox"""
+    import os
+    return Path(os.environ.get("STUDIO_INBOX") or ROOT / "inbox").expanduser()
+
+
+def resolve_src(src: str, base: Path) -> Path:
+    if str(src).startswith("inbox:"):
+        p = (inbox_dir() / src[6:]).resolve()
+        if inbox_dir().resolve() not in p.parents:
+            raise SystemExit(f"запрещено: {src} вне папки Входящие")
+        return p
+    p = Path(src)
+    return p if p.is_absolute() else base / p
+
 
 FORMATS = {"16:9": (1920, 1080), "9:16": (1080, 1920), "1:1": (1080, 1080), "4:5": (1080, 1350)}
 XFADE = {"fade", "fadeblack", "fadewhite", "dissolve", "slideleft", "slideright", "slideup", "slidedown",
@@ -250,8 +270,7 @@ class Project:
 
     # ---------------------------------------------------------- live footage
     def media(self, src) -> Path:
-        p = Path(src)
-        return p if p.is_absolute() else self.dir / p
+        return resolve_src(src, self.dir)
 
     def render_footage(self, sc):
         """Real video: trim, cover-crop to format, slow push-in, grade, titles/subs overlay. Faces untouched."""
@@ -374,7 +393,7 @@ def cmd_ingest(slug, files, name=None):
     """Join uploaded parts (≤30 MB each) into one source file in projects/<slug>/media/."""
     d = ROOT / "projects" / slug / "media"
     d.mkdir(parents=True, exist_ok=True)
-    files = [Path(f).resolve() for f in files]
+    files = [Path(f).resolve() if Path(f).exists() else resolve_src("inbox:" + f.removeprefix("inbox:"), ROOT) for f in files]
     name = name or re.sub(r"[_-]?(part)?\d+$", "", files[0].stem) or "clip"
     out = d / f"{name}.mp4"
     if len(files) == 1:
@@ -396,13 +415,14 @@ def cmd_ingest(slug, files, name=None):
 def cmd_look(slug, name, every=None):
     """Make the footage visible to the director: probe, timecoded contact sheet, speech map."""
     from PIL import Image, ImageDraw, ImageFont
-    src = ROOT / "projects" / slug / "media" / name
+    src = resolve_src(name, ROOT / "projects" / slug / "media")
+    (ROOT / "projects" / slug / "media").mkdir(parents=True, exist_ok=True)  # outputs go to project; inbox stays read-only
     info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(src)],
                                      capture_output=True, text=True).stdout)
     dur = float(info["format"]["duration"])
     v = next(s for s in info["streams"] if s["codec_type"] == "video")
     every = every or max(1.0, round(dur / 24, 1))
-    tmp = src.parent / f".{src.stem}_thumbs"
+    tmp = ROOT / "projects" / slug / "media" / f".{src.stem}_thumbs"
     tmp.mkdir(exist_ok=True)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(src), "-vf", f"fps=1/{every},scale=360:-2", str(tmp / "%04d.jpg")], check=True)
     thumbs = sorted(tmp.glob("*.jpg"))
@@ -416,7 +436,8 @@ def cmd_look(slug, name, every=None):
         x, y = (i % cols) * tw, (i // cols) * (th + 26)
         sheet.paste(Image.open(p), (x, y))
         dr.text((x + 6, y + th + 2), f"{int(i * every // 60)}:{i * every % 60:04.1f}", font=f, fill="#ffd166")
-    sheet.save(src.with_suffix(".sheet.jpg"), quality=85)
+    sheet_p = ROOT / "projects" / slug / "media" / (src.stem + ".sheet.jpg")
+    sheet.save(sheet_p, quality=85)
     for p in thumbs: p.unlink()
     tmp.rmdir()
     sil = subprocess.run(["ffmpeg", "-v", "info", "-i", str(src), "-af", "silencedetect=n=-35dB:d=0.6", "-f", "null", "-"],
@@ -424,7 +445,26 @@ def cmd_look(slug, name, every=None):
     marks = re.findall(r"silence_(start|end): ([\d.]+)", sil)
     print(json.dumps({"file": str(src), "duration": round(dur, 2), "size": f"{v['width']}x{v['height']}",
                       "fps": v.get("r_frame_rate"), "has_audio": any(s["codec_type"] == "audio" for s in info["streams"]),
-                      "silences": marks[:60], "sheet": str(src.with_suffix(".sheet.jpg")), "sheet_every_s": every}, ensure_ascii=False, indent=1))
+                      "silences": marks[:60], "sheet": str(sheet_p), "sheet_every_s": every}, ensure_ascii=False, indent=1))
+
+
+def cmd_inbox():
+    """Список видео во «Входящих» (только видеофайлы, только эта папка), отметка — использовалось ли."""
+    d = inbox_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    used = set()
+    for sj in (ROOT / "projects").glob("*/script.json"):
+        used |= set(re.findall(r'"inbox:([^"]+)"', sj.read_text()))
+    rows = []
+    for f in sorted(d.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+        if f.suffix.lower() not in VIDEO_EXT or f.name.startswith("."):
+            continue
+        pr = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(f)],
+                            capture_output=True, text=True).stdout.strip()
+        rows.append({"file": f.name, "src": f"inbox:{f.name}", "mb": round(f.stat().st_size / 2**20, 1),
+                     "sec": round(float(pr or 0), 1), "new": f.name not in used,
+                     "added": time.strftime("%Y-%m-%d %H:%M", time.localtime(f.stat().st_mtime))})
+    print(json.dumps({"inbox": str(d), "videos": rows}, ensure_ascii=False, indent=1))
 
 
 def cmd_new(slug):
@@ -448,6 +488,8 @@ def main():
         return cmd_new(a[1])
     if a[0] == "ingest":
         return cmd_ingest(a[1], a[2:])
+    if a[0] == "inbox":
+        return cmd_inbox()
     if a[0] == "look":
         return cmd_look(a[1], a[2])
     p = Project(a[1])

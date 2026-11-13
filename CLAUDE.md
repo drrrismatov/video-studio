@@ -49,6 +49,9 @@ circleopen/close, zoomin, wipeleft/right, radial, pixelize, hblur, distance, squ
 - Числа в закадре писать словами («тридцать»), в data — цифрами.
 
 ## Живое видео пользователя
+- **Основной путь — папка «Входящие»** (`inbox/` или путь из `$STUDIO_INBOX`): любые размеры, без загрузки в чат.
+  `python3 studio.py inbox` — список видео; в сцене `"src": "inbox:файл.mp4"`; `look <slug> inbox:файл.mp4`.
+  Студия только читает эту папку (запрет Edit/Write в .claude/settings.json, выход за пределы папки блокируется).
 - Приём: файлы ≤30 МБ (лимит чата) → `python3 studio.py ingest <slug> часть1.mp4 часть2.mp4` → `media/<имя>.mp4`
   (склейка без перекодирования) + контактный лист `media/<имя>.sheet.jpg` и карта тишины (где речь).
 - Сцена `footage`: {src:"media/x.mp4", in, out, audio:true|false, volume, zoom:1.05, fit:auto|cover|blur,
