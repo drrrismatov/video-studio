@@ -115,7 +115,7 @@ class Project:
             td_in = 0.0 if i == 0 or tr_in == "cut" else sc.get("transition_duration", td_default)
             nxt = self.scenes[i + 1] if i + 1 < n else None
             td_out = 0.0 if not nxt or nxt.get("transition") == "cut" else nxt.get("transition_duration", td_default)
-            lead = 0.6 if i == 0 else td_in + 0.25
+            lead = sc.get("lead", 0.6 if i == 0 else td_in + 0.25)
             vo = sc["_vo"]["dur"] if sc.get("_vo") else 0
             tail = 0.7 + td_out
             dur = max(sc.get("min_duration", 3.0), lead + vo + tail if vo else 0)
@@ -176,7 +176,24 @@ class Project:
             t += d
         return out
 
+    def mouth_env(self, wav):
+        """Lip-sync curve: per-frame mouth opening 0..1 from voice loudness (cartoon style, slightly snappy)."""
+        import numpy as np
+        x = np.abs(audio.read_wav(Path(wav))).mean(axis=1)
+        hop = audio.SR // self.fps
+        n = len(x) // hop
+        r = np.sqrt(np.array([np.mean(x[i * hop:(i + 1) * hop] ** 2) for i in range(n)]) + 1e-12)
+        ref = np.percentile(r, 92) + 1e-9
+        m = np.clip((r / ref - 0.12) * 1.25, 0, 1)
+        m = np.round(np.convolve(m, [0.25, 0.5, 0.25], mode="same") * 4) / 4   # 5 mouth shapes
+        return [round(float(v), 2) for v in m]
+
     def scene_payload(self, sc, i):
+        if sc.get("template") == "cartoon" and sc.get("_vo"):
+            sc.setdefault("data", {})
+            sc["data"]["env"] = self.mouth_env(sc["_vo"]["file"])
+            sc["data"]["envLead"] = sc["_t"]["lead"]
+            sc["data"]["fps"] = self.fps
         return {
             "template": sc.get("template", "statement"), "data": sc.get("data", {}),
             "theme": sc.get("theme", self.script.get("theme", "midnight")), "accent": sc.get("accent"),
@@ -419,6 +436,15 @@ class Project:
                 secs.append({"start": sc["_t"]["start"] + sc["music_pause"], "energy": sc.get("energy", 0.5)})
         if m.get("file"):
             log("музыка: используем файл " + m["file"])
+            return
+        if m.get("mood") == "suite":
+            segs = []
+            for i, sc in enumerate(self.scenes):
+                end = self.scenes[i + 1]["_t"]["start"] if i + 1 < len(self.scenes) else self.length
+                segs.append({"start": sc["_t"]["start"], "end": end, "style": sc.get("music_style", "piano"),
+                             "energy": sc.get("energy", 0.5), "pause": sc.get("music_pause")})
+            log("музыка: сюита — " + " → ".join(dict.fromkeys(x["style"] for x in segs)))
+            audio.write_wav(self.build / "music.wav", audio.compose_suite(self.length, segs))
             return
         log(f"музыка: {m.get('mood', 'cinematic')} · {self.length:.1f}s")
         x = audio.compose(self.length, secs, mood=m.get("mood", "cinematic"), key=m.get("key", "A"),

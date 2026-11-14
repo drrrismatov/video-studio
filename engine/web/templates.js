@@ -497,6 +497,76 @@
     } };
   };
 
+  // ------------------------------------------------------------- cartoon shot (SVG characters, camera, lip-sync)
+  // d: {set, cam:[[t,cx,cy,s]...], actors:[...], env:[mouth levels per frame], envLead, fps, label, hook, flicker, tint, bands}
+  T.cartoon = (d, D) => {
+    const CT = window.CARTOON;
+    const box = h('div', '', null, { position: 'absolute', inset: 0, overflow: 'hidden', background: '#000' });
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 1080 1920'); svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    Object.assign(svg.style, { position: 'absolute', inset: 0, width: '100%', height: '100%' });
+    box.appendChild(svg);
+    const vg = h('div', '', null, { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%)' });
+    box.appendChild(vg);
+    let label, hook;
+    if (d.label) { label = h('div', 'display', esc(d.label), { position: 'absolute', left: '7%', top: '9%', fontSize: U(4.2), fontStyle: 'italic', color: '#f3e3c8', textShadow: '0 2px 14px rgba(0,0,0,.8)' }); box.appendChild(label); }
+    if (d.hook) { hook = h('div', 'display', d.hook.replace(/\*(.+?)\*/g, '<span class="accent">$1</span>'), { position: 'absolute', left: '8%', right: '8%', top: d.hookTop || '13%', textAlign: 'center', fontSize: U(6.4), fontWeight: 500, color: '#fff', lineHeight: 1.15, textShadow: '0 4px 24px rgba(0,0,0,.9)' }); box.appendChild(hook); }
+    const fps = d.fps || 30;
+    const mouthAt = (t, ch) => {
+      const env = ch.env ? d.envs?.[ch.env] : d.env; if (!env) return 0;
+      const i = Math.round((t - (d.envLead || 0)) * fps);
+      return i >= 0 && i < env.length ? env[i] : 0;
+    };
+    const blinkAt = (t, seed) => { const p = (t + seed * 1.37) % (3.1 + seed % 1.3); return p < 0.07 ? 1 : p < 0.13 ? 0.5 : 0; };
+    const camAt = t => {
+      const K = d.cam || [[0, 540, 960, 1]];
+      if (t <= K[0][0]) return K[0];
+      for (let i = 0; i < K.length - 1; i++) if (t < K[i + 1][0]) { const x = E.inOut((t - K[i][0]) / (K[i + 1][0] - K[i][0])); return [t, ...[1, 2, 3].map(j => lerp(K[i][j], K[i + 1][j], x))]; }
+      return K[K.length - 1];
+    };
+    const draw = (t) => {
+      let s = '';
+      const fl = 0.85 + 0.15 * Math.sin(t * 13) * Math.sin(t * 7.3) + (d.flicker ? 0 : 0.15);
+      s += d.set ? CT.S[d.set](t, fl) : '';
+      if (d.set === 'tent' || d.lamp) s += `<g transform="translate(${d.lampX || 540} ${d.lampY || 330})">${CT.P.lamp({ flicker: fl })}</g>`;
+      (d.actors || []).forEach((a, k) => {
+        if (a.from !== undefined && t < a.from) return;
+        if (a.to !== undefined && t > a.to) return;
+        const br = 1 + 0.006 * Math.sin(t * 2.2 + k);
+        const sway = (a.sway || 0) * Math.sin(t * 1.3 + k);
+        const shake = a.shake ? a.shake * Math.sin(t * 37 + k) : 0;
+        let inner = '';
+        if (a.type === 'char') {
+          const o = Object.assign({}, a.opts || {});
+          if (a.talk) o.mouth = mouthAt(t, a);
+          o.blink = (o.blink ?? 0) || blinkAt(t, k + 1);
+          inner = CT.C[a.name](o);
+        } else if (a.type === 'prop') {
+          const o = Object.assign({}, a.opts || {});
+          if (a.glint) o.glint = -0.2 + 1.4 * clamp((t - a.glint[0]) / (a.glint[1] - a.glint[0]));
+          inner = CT.P[a.name](o);
+        } else if (a.type === 'arm') {
+          s += CT.P.arm(a.x1, a.y1, a.x2 + shake, a.y2, a.sleeve, a.w || 54);
+          s += `<g transform="translate(${a.x2 + shake} ${a.y2})">${CT.P.hand(a.skin)}</g>`;
+          return;
+        } else if (a.type === 'svg') { inner = a.svg; }
+        const fx = a.flip ? -1 : 1;
+        s += `<g transform="translate(${a.x + sway + shake} ${a.y}) rotate(${(a.rot || 0) + (a.rotSway || 0) * Math.sin(t * 1.7)}) scale(${a.s * fx} ${a.s * br})">${inner}</g>`;
+      });
+      if (d.tint) s += `<rect width="1080" height="1920" fill="${d.tint}" opacity="${d.tintA || .12}"/>`;
+      return s;
+    };
+    return {
+      el: box, update(t) {
+        const c = camAt(t);
+        svg.innerHTML = `<g transform="translate(540 960) scale(${c[3]}) translate(${-c[1]} ${-c[2]})">${draw(t)}</g>`;
+        if (label) fadeUp(label, t, d.labelAt ?? 0.6, 0.8, 1);
+        if (hook) { const a = E.out(P(t, d.hookAt ?? 0.2, 0.6)); const z = 1 - E.inOut(P(t, (d.hookAt ?? 0.2) + (d.hookHold ?? 2.4), 0.5)); hook.style.opacity = a * z; hook.style.transform = `translateY(${(1 - a) * 2}vh)`; }
+      }
+    };
+  };
+
   T.none = () => ({ el: h('div'), update() {} });
 
   // lower third — name / role plate over footage

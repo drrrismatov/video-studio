@@ -458,7 +458,8 @@ def mix(timeline: dict, out: Path, music_vol: float = 0.8, duck: float = 0.35) -
     gain = 1 - (1 - duck) * np.clip(sm * 1.5, 0, 1)
     mus *= gain[:, None] * music_vol
     fx = np.zeros((n, 2))
-    gens = {"whoosh": sfx_whoosh, "impact": sfx_impact, "riser": sfx_riser, "tick": sfx_tick, "applause": sfx_applause}
+    gens = {"whoosh": sfx_whoosh, "impact": sfx_impact, "riser": sfx_riser, "tick": sfx_tick, "applause": sfx_applause,
+            "shing": lambda seed: sfx_shing(seed), "heartbeat": lambda seed: sfx_heartbeat(seed), "ding": lambda seed: sfx_ding(seed)}
     for i, s in enumerate(timeline.get("sfx", [])):
         g = gens[s["kind"]]
         x = g(seed=20 + i)
@@ -530,7 +531,7 @@ def strings_note(midi, dur, vel=0.5, seed=0):
         pan = (v / 5) * 1.4 - 0.7
         out += stereo(saw, pan) / 6
     env = np.clip(t / 0.9, 0, 1) ** 1.5 * np.where(t > dur, np.clip(1 - (t - dur) / 1.2, 0, 1), 1)
-    return lowpass(out, 1400 + 1600 * vel) * env[:, None] * vel
+    return lowpass(out, min(1400 + 1600 * vel, max(f0 * 5, 500))) * env[:, None] * vel  # low notes: no whistling upper harmonics
 
 
 def compose_piano(length, sections, key="D", bpm=68, seed=3):
@@ -611,3 +612,157 @@ def compose_piano(length, sections, key="D", bpm=68, seed=3):
     fade = int(min(3.0, length / 4) * SR)
     out[-fade:] *= np.linspace(1, 0, fade)[:, None] ** 1.5
     return out
+
+
+# ---------------------------------------------------------------- scene-scored suite (one style per scene, crossfaded)
+
+def _oud(freq, n, vel=0.6, seed=0):
+    t = np.arange(n) / SR
+    bend = 1 + 0.012 * np.exp(-t * 30)                      # plectrum pitch bend
+    ph = 2 * np.pi * np.cumsum(freq * bend) / SR
+    x = np.zeros(n)
+    for k in range(1, 12):
+        x += np.sin(k * ph + k) / k ** 0.9 * np.exp(-t * (3.5 + k * 2.2))
+    x += highpass(rng(seed).standard_normal(n), 2000) * np.exp(-t * 120) * 0.15
+    return lowpass(x * vel * np.minimum(t / 0.002, 1), 3200)
+
+
+def _drum(kind, seed=0):
+    n = int(0.5 * SR); t = np.arange(n) / SR
+    if kind == "dum":
+        return np.sin(2 * np.pi * np.cumsum(70 + 60 * np.exp(-t * 25)) / SR) * np.exp(-t * 6) * 0.9
+    return (highpass(rng(seed).standard_normal(n), 2500) * np.exp(-t * 55) * 0.5
+            + np.sin(2 * np.pi * 420 * t) * np.exp(-t * 40) * 0.25)
+
+
+def style_oriental(L, energy=0.6, seed=4):
+    bpm = 96; beat = 60 / bpm; n = int((L + 2) * SR)
+    out = np.zeros((n, 2)); drums = np.zeros((n, 2))
+    hijaz = [0, 1, 4, 5, 7, 8, 10, 12]                        # D Eb F# G A Bb C D
+    root = 50                                                # D3
+    phrase = [7, 6, 5, 4, 5, 4, 2, 1, 0, 1, 2, 4, 2, 1, 0, 0]
+    for i in range(int(L / (beat / 2)) + 1):
+        tt = i * beat / 2
+        if i % 16 in (3, 11) and i % 32 > 15:
+            continue
+        nt = root + 12 + hijaz[phrase[i % 16] % 8] + (12 if phrase[i % 16] == 7 else 0)
+        place(out, stereo(_oud(note_hz(nt), int(1.2 * SR), 0.45 + 0.1 * (i % 4 == 0), seed + i), 0.25), tt)
+    maqsum = ["dum", "tek", None, "tek", "dum", None, "tek", None]
+    for i in range(int(L / (beat / 2)) + 1):
+        k = maqsum[i % 8]
+        if k:
+            place(drums, stereo(_drum(k, seed + i), -0.2 if k == "tek" else 0.1), i * beat / 2, 0.55 * (0.6 + 0.4 * energy))
+    pad = np.zeros((n, 2))
+    place(pad, strings_note(root - 12, L + 0.5, 0.45, seed) + strings_note(root - 5, L + 0.5, 0.3, seed + 1), 0)
+    mix = reverb(out * 0.6, 2.2, 0.3) + reverb(drums, 1.0, 0.15) + reverb(pad * 0.5, 3.0, 0.4)
+    return mix[: int(L * SR)]
+
+
+def style_mountain(L, energy=0.5, seed=5):
+    n = int((L + 2) * SR); g = rng(seed)
+    out = np.zeros((n, 2))
+    root = 50; penta = [0, 3, 5, 7, 10, 12, 15]
+    t = 0.3
+    while t < L:
+        nt = root + 12 + penta[g.integers(0, len(penta))]
+        place(out, stereo(_oud(note_hz(nt), int(1.6 * SR), 0.5, int(t * 100)), g.random() * 0.8 - 0.4), t)
+        if g.random() < 0.35:
+            place(out, stereo(_oud(note_hz(nt), int(1.2 * SR), 0.35, int(t * 77)), 0.3), t + 0.12)
+        t += g.choice([0.6, 0.9, 1.2])
+    out = delay(out, 0.42, 0.45, 0.4)
+    drone = strings_note(root - 12, L + 0.5, 0.4, seed) + strings_note(root - 5, L + 0.5, 0.22, seed + 2)
+    wn = int(L * SR); w = np.convolve(g.standard_normal(wn), np.ones(400) / 400, mode="same")
+    wind = bandpass(g.standard_normal(wn), 250, 1400) * (0.4 + 0.6 * np.abs(np.sin(np.arange(wn) / SR * 0.35)))[:]
+    mix = reverb(out * 0.5, 3.5, 0.45) + reverb(drone * 0.55, 3.0, 0.3)
+    mix[:wn] += stereo(wind * 0.08, 0)[:len(mix[:wn])]
+    return mix[: int(L * SR)]
+
+
+def style_clinic(L, energy=0.6, seed=6):
+    bpm = 116; beat = 60 / bpm; n = int((L + 2) * SR)
+    pulse = np.zeros((n, 2)); tick = np.zeros((n, 2))
+    chords = [[45, 52, 57, 60], [41, 48, 53, 57]]           # Am, F (cold, low)
+    for i in range(int(L / (beat / 2)) + 1):
+        tt = i * beat / 2; ch = chords[int(tt / (beat * 8)) % 2]
+        ln = int(beat / 2 * 0.8 * SR); tl = np.arange(ln) / SR
+        x = (np.sin(2 * np.pi * note_hz(ch[0] - 12) * tl) + 0.4 * np.sign(np.sin(2 * np.pi * note_hz(ch[0]) * tl)) * 0.3) * np.exp(-tl * 8)
+        place(pulse, stereo(lowpass(x, 900), 0), tt, 0.32)
+        if i % 2 == 0:
+            place(tick, sfx_tick(seed + i) * 0.7, tt)
+    pad = np.zeros((n, 2))
+    for b in range(int(L / (beat * 8)) + 1):
+        ch = chords[b % 2]; ln = int(beat * 8 * SR)
+        for j, nt in enumerate(ch[1:]):
+            place(pad, lowpass(supersaw(note_hz(nt), ln, seed=seed + b * 5 + j), 1100) * env_adsr(ln, 0.6, 0.2, 0.8, 0.6)[:, None] * 0.09, b * beat * 8)
+    mix = pulse + tick * 0.5 + reverb(pad, 2.4, 0.35)
+    return mix[: int(L * SR)]
+
+
+def style_suspense(L, energy=0.4, seed=7):
+    n = int((L + 2) * SR)
+    out = np.zeros((n, 2))
+    place(out, strings_note(38, L + 0.5, 0.5, seed) + strings_note(45, L + 0.5, 0.35, seed + 1) + strings_note(51, L + 0.5, 0.18, seed + 2), 0)
+    t = np.arange(n) / SR
+    high = stereo(np.sin(2 * np.pi * note_hz(86) * t) * 0.02 * np.clip(t / max(L, 1), 0, 1), 0)
+    return reverb(out * 0.6 + high, 3.5, 0.4)[: int(L * SR)]
+
+
+def style_piano(L, energy=0.5, seed=8):
+    return compose_piano(L + 0.01, [{"start": 0, "energy": energy}], key="D", bpm=66, seed=seed)[: int(L * SR)]
+
+
+STYLES = {"oriental": style_oriental, "mountain": style_mountain, "clinic": style_clinic,
+          "suspense": style_suspense, "piano": style_piano}
+
+
+def compose_suite(length, segs, xf=0.9):
+    """segs: [{start, end, style, energy, pause}] -> one score, styles crossfaded at scene boundaries."""
+    n = int((length + 1) * SR)
+    out = np.zeros((n, 2))
+    merged = []
+    for s in segs:  # merge neighbours with the same style into one continuous cue
+        if merged and merged[-1]["style"] == s["style"] and not s.get("pause"):
+            merged[-1]["end"] = s["end"]; merged[-1]["energy"] = max(merged[-1]["energy"], s["energy"])
+        else:
+            merged.append(dict(s))
+    for i, s in enumerate(merged):
+        a = max(0.0, s["start"] - (xf / 2 if i else 0))
+        b = min(length, s["end"] + (xf / 2 if i < len(merged) - 1 else 0))
+        x = STYLES.get(s["style"], style_piano)(b - a, s.get("energy", 0.5), seed=11 + i)
+        x = x / (np.sqrt((x ** 2).mean()) + 1e-9) * 0.12                       # equal loudness per cue
+        m = len(x); f = int(xf * SR)
+        env = np.ones(m)
+        if i: env[:f] = np.linspace(0, 1, min(f, m))[:min(f, m)]
+        if i < len(merged) - 1: env[-f:] = np.minimum(env[-f:], np.linspace(1, 0, f))
+        if s.get("pause"):
+            p = int(float(s["pause"]) * SR); env[:p] = 0; env[p:p + f] *= np.linspace(0, 1, len(env[p:p + f]))
+        place(out, x * env[:, None], a)
+    out = highpass(out, 55)                      # keep the low end clean under dialogue
+    out = softclip(out * 1.6, 1.1) * 0.8
+    out = out[: int(length * SR)]
+    fade = int(min(2.5, length / 5) * SR)
+    out[-fade:] *= np.linspace(1, 0, fade)[:, None] ** 1.5
+    return out
+
+
+def sfx_shing(seed=21):
+    n = int(1.8 * SR); t = np.arange(n) / SR; g = rng(seed)
+    scrape = bandpass(g.standard_normal(n), 2500, 9000) * np.exp(-t * 6) * np.clip(t / 0.05, 0, 1) * (t < 0.45)
+    ring = sum(np.sin(2 * np.pi * f * t) * np.exp(-t * d) / (k + 1) for k, (f, d) in enumerate([(2100, 2.5), (3370, 3.2), (5230, 4.5), (7110, 6)]))
+    return reverb(stereo(scrape * 0.4 + ring * 0.35 * np.clip((t - 0.3) / 0.02, 0, 1)), 2.0, 0.3) * 0.7
+
+
+def sfx_heartbeat(seed=22, beats=8, bpm=62):
+    n = int((beats * 60 / bpm + 1) * SR); out = np.zeros(n)
+    k = kick(int(0.35 * SR)); k = lowpass(k, 180)
+    for b in range(beats):
+        t0 = b * 60 / bpm
+        for off, g in ((0, 1.0), (0.22, 0.7)):
+            i = int((t0 + off) * SR); out[i:i + len(k)] += k[: n - i] * g * (1 - b / beats * 0.4)
+    return stereo(out * 0.7)
+
+
+def sfx_ding(seed=23):
+    n = int(1.0 * SR); t = np.arange(n) / SR
+    x = np.sin(2 * np.pi * 1318 * t) * np.exp(-t * 6) * (t < 0.5) + np.sin(2 * np.pi * 1760 * t) * np.exp(-(t - 0.12).clip(0) * 6) * (t > 0.12)
+    return reverb(stereo(x * 0.3), 1.0, 0.2)
