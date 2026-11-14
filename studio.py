@@ -478,11 +478,13 @@ class Project:
         if not m:
             return
         delta = target - float(m[-1])
-        if abs(delta) < 0.3:
+        peak = re.findall(r"Peak:\s+(-?[\d.]+) dBFS", subprocess.run(["ffmpeg", "-i", str(final), "-af", "ebur128=peak=true", "-f", "null", "-"],
+                                                                     capture_output=True, text=True).stderr)
+        if abs(delta) < 0.3 and (not peak or float(peak[-1]) < -1.0):
             return
         log(f"мастеринг громкости: {float(m[-1]):.1f} → {target} LUFS")
         tmp = final.with_suffix(".lufs.mp4")
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(final), "-c:v", "copy", "-af", f"volume={delta:.2f}dB",
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(final), "-c:v", "copy", "-af", f"volume={delta:.2f}dB,alimiter=limit=0.89:level=false",
                         "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(tmp)], check=True)
         tmp.replace(final)
 

@@ -511,7 +511,8 @@
     box.appendChild(vg);
     let label, hook;
     if (d.label) { label = h('div', 'display', esc(d.label), { position: 'absolute', left: '7%', top: '9%', fontSize: U(4.2), fontStyle: 'italic', color: '#f3e3c8', textShadow: '0 2px 14px rgba(0,0,0,.8)' }); box.appendChild(label); }
-    if (d.hook) { hook = h('div', 'display', d.hook.replace(/\*(.+?)\*/g, '<span class="accent">$1</span>'), { position: 'absolute', left: '8%', right: '8%', top: d.hookTop || '13%', textAlign: 'center', fontSize: U(6.4), fontWeight: 500, color: '#fff', lineHeight: 1.15, textShadow: '0 4px 24px rgba(0,0,0,.9)' }); box.appendChild(hook); }
+    if (d.hook) { hook = h('div', 'display', d.hook.replace(/\*(.+?)\*/g, '<span class="accent">$1</span>'), { position: 'absolute', left: '8%', right: '8%', top: d.hookTop || '13%', textAlign: 'center', fontSize: U(6.4), fontWeight: 500, color: '#fff', lineHeight: 1.15, textShadow: '0 4px 24px rgba(0,0,0,.9)',
+      padding: `${U(2.2)} ${U(3)}`, borderRadius: U(2), background: 'radial-gradient(ellipse at 50% 50%, rgba(10,6,4,.72) 0%, rgba(10,6,4,.45) 60%, rgba(10,6,4,0) 100%)' }); box.appendChild(hook); }
     const fps = d.fps || 30;
     const mouthAt = (t, ch) => {
       const env = ch.env ? d.envs?.[ch.env] : d.env; if (!env) return 0;
