@@ -441,6 +441,21 @@ class Project:
         audio.mix({"length": self.length, "vo": vo + self.footage_audio(), "music": music, "sfx": sfx}, self.build / "mix.wav",
                   music_vol=m.get("volume", 0.8), duck=m.get("duck", 0.3))
 
+    def master_loudness(self, final, target=-14.0):
+        """Measure the finished file and trim audio to exactly the streaming target (video stream copied)."""
+        out = subprocess.run(["ffmpeg", "-i", str(final), "-af", "ebur128", "-f", "null", "-"], capture_output=True, text=True).stderr
+        m = re.findall(r"I:\s+(-?[\d.]+) LUFS", out)
+        if not m:
+            return
+        delta = target - float(m[-1])
+        if abs(delta) < 0.3:
+            return
+        log(f"мастеринг громкости: {float(m[-1]):.1f} → {target} LUFS")
+        tmp = final.with_suffix(".lufs.mp4")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(final), "-c:v", "copy", "-af", f"volume={delta:.2f}dB",
+                        "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(tmp)], check=True)
+        tmp.replace(final)
+
     # ---------------------------------------------------------- edit
     def stage_edit(self):
         g = self.script.get("grade", {})
@@ -477,6 +492,7 @@ class Project:
                "-map", "[vout]", "-map", f"{len(self.scenes)}:a", "-c:v", "libx264", "-preset", "medium", "-crf", "18",
                "-c:a", "aac", "-b:a", "192k", "-t", f"{self.length:.3f}", "-movflags", "+faststart", str(final)]
         subprocess.run(cmd, check=True)
+        self.master_loudness(final)
         subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{self.scenes[0]['_t']['dur'] * 0.7:.2f}", "-i", str(final),
                         "-frames:v", "1", str(self.out / "poster.jpg")], check=True)
         log(f"ГОТОВО → {final}  ({self.length:.1f} c)")
