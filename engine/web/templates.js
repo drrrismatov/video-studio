@@ -25,7 +25,8 @@
                 card: 'rgba(255,255,255,0.75)', border: 'rgba(13,19,33,0.08)', leak: 'rgba(255,255,255,0)' },
     documentary: { bg: ['#050404', '#0d0a08'], fg: '#f6efe6', muted: '#b9ab98', accent: '#e8c99a', accent2: '#f3e3c8',
                 blobs: ['#3a2a1c', '#21180f', '#2c2116', '#1a130c'], glow: 'rgba(232,201,154,.25)',
-                card: 'rgba(255,255,255,0.04)', border: 'rgba(232,201,154,0.18)', leak: 'rgba(255,200,140,0.10)' },
+                card: 'rgba(255,255,255,0.04)', border: 'rgba(232,201,154,0.18)', leak: 'rgba(255,200,140,0.10)',
+                fontDisplay: "'Playfair'", fontText: "'Manrope'", displayWeight: 500, displayTracking: '0em', italicAccent: true },
     gold:     { bg: ['#07060a', '#17131f'], fg: '#fbf6ea', muted: '#b5aa92', accent: '#e9c46a', accent2: '#f4a261',
                 blobs: ['#3c2a4d', '#6b4e16', '#2a1f3d', '#8a6d1f'], glow: 'rgba(233,196,106,.45)',
                 card: 'rgba(255,255,255,0.05)', border: 'rgba(233,196,106,0.2)', leak: 'rgba(255,200,100,0.22)' },
@@ -203,7 +204,7 @@
 
   T.statement = (d, D) => {
     const box = h('div', '', null, { maxWidth: d.width || '84%', textAlign: d.align || 'center',
-      ...(d.pos === 'bottom' ? { position: 'absolute', bottom: '9%', left: '50%', translate: '-50% 0', width: '84%' } : {}) });
+      ...(d.pos === 'bottom' ? { position: 'absolute', bottom: W < H ? '27%' : '9%', left: '50%', translate: '-50% 0', width: W < H ? '80%' : '84%' } : {}) });
     if (d.shadow) box.style.textShadow = '0 4px 30px rgba(0,0,0,.85), 0 0 60px rgba(0,0,0,.6)';
     let root = box, band = null;
     if (d.pos === 'bottom') {  // soft dark band so gold words read on bright footage
@@ -411,8 +412,8 @@
     const box = h('div', '', null, { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' });
     const L = (d.lines || []);
     const els = L.map(tx => {
-      const e = h('div', '', null, { position: 'absolute', width: '80%', textAlign: 'center', fontSize: U(d.size || 5.2),
-        fontWeight: d.weight || 300, letterSpacing: '0.01em', lineHeight: 1.25, color: 'var(--fg)' });
+      const e = h('div', 'display', null, { position: 'absolute', width: '80%', textAlign: 'center', fontSize: U(d.size || 5.2),
+        fontWeight: d.weight || 400, letterSpacing: '0.01em', lineHeight: 1.25, color: 'var(--fg)' });
       e.innerHTML = esc(tx).replace(/\*(.+?)\*/g, '<span class="accent">$1</span>');
       box.appendChild(e); return e;
     });
@@ -467,17 +468,19 @@
     img.src = d.src;
     const warm = h('div', '', null, { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 30%, rgba(255,210,150,.0) 0%, rgba(20,10,0,.45) 100%)' });
     const sweep = h('div', '', null, { position: 'absolute', inset: 0, mixBlendMode: 'screen' });
-    const shade = h('div', '', null, { position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(5,4,3,.82) 0%, rgba(5,4,3,0) 42%)' });
+    const shade = h('div', '', null, { position: 'absolute', inset: 0, background: W < H
+      ? 'linear-gradient(0deg, rgba(5,4,3,.55) 0%, rgba(5,4,3,.72) 22%, rgba(5,4,3,.45) 36%, rgba(5,4,3,0) 52%)'
+      : 'linear-gradient(0deg, rgba(5,4,3,.82) 0%, rgba(5,4,3,0) 42%)' });
     const flash = h('div', '', null, { position: 'absolute', inset: 0, background: '#fff', opacity: 0 });
     box.append(img, warm, sweep);
     const conf = d.confetti ? confettiLayer(77, d.confetti, d.confettiAt ?? 0.4) : null;
     if (conf) box.appendChild(conf.el);
     box.append(shade);
-    const cap = d.title ? h('div', '', null, { position: 'absolute', left: 0, right: 0, bottom: '9%', textAlign: 'center' }) : null;
+    const cap = d.title ? h('div', '', null, { position: 'absolute', left: '6%', right: '6%', bottom: W < H ? '26%' : '9%', textAlign: 'center' }) : null;
     if (cap) {
-      const t1 = h('div', '', esc(d.title), { fontSize: U(d.size || 5), fontWeight: 300, color: '#fff', letterSpacing: '.01em', textShadow: '0 2px 20px rgba(0,0,0,.6)' });
+      const t1 = h('div', 'display', esc(d.title), { fontSize: U(d.size || 5), fontWeight: 400, color: '#fff', letterSpacing: '.01em', textShadow: '0 2px 18px rgba(0,0,0,.85), 0 0 4px rgba(0,0,0,.5)' });
       cap.appendChild(t1);
-      if (d.subtitle) cap.appendChild(h('div', '', esc(d.subtitle), { fontSize: U(3.4), fontWeight: 600, color: 'var(--accent)', marginTop: U(1.2), letterSpacing: '.02em' }));
+      if (d.subtitle) cap.appendChild(h('div', 'display', esc(d.subtitle), { fontSize: U(4.2), fontWeight: 500, fontStyle: 'italic', color: 'var(--accent)', marginTop: U(0.6), textShadow: '0 2px 16px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.6)' }));
       box.appendChild(cap);
     }
     box.appendChild(flash);
@@ -485,6 +488,7 @@
     return { el: box, update(t) {
       const x = E.inOut(P(t, 0, D));
       img.style.transform = `scale(${lerp(kb.from[0], kb.to[0], x)}) translate(${lerp(kb.from[1], kb.to[1], x)}%, ${lerp(kb.from[2], kb.to[2], x)}%)`;
+      if (d.pan) img.style.objectPosition = `${lerp(d.pan[0], d.pan[1], x)}% ${d.panY ?? 60}%`;  // vertical frame: travel across a wide group photo
       const sx = -30 + 160 * P(t, 0.3, Math.min(D, 4.5));
       sweep.style.background = `linear-gradient(105deg, rgba(255,220,160,0) ${sx - 18}%, rgba(255,220,160,.28) ${sx}%, rgba(255,220,160,0) ${sx + 18}%)`;
       if (d.flash) flash.style.opacity = 0.55 * (1 - E.out(P(t, 0, 0.7)));
@@ -497,10 +501,10 @@
 
   // lower third — name / role plate over footage
   T.lower = (d, D) => {
-    const box = h('div', '', null, { position: 'absolute', left: '6%', bottom: W < H ? '24%' : '14%', display: 'flex', alignItems: 'stretch', gap: U(1.6) });
+    const box = h('div', '', null, { position: 'absolute', left: '6%', bottom: W < H ? '33%' : '14%', display: 'flex', alignItems: 'stretch', gap: U(1.6) });
     const bar = h('div', '', null, { width: U(0.6), background: 'var(--accent)', boxShadow: '0 0 14px var(--accent)', transformOrigin: 'bottom' });
     const col = h('div', '', null, { display: 'flex', flexDirection: 'column', gap: U(0.6), padding: `${U(1.2)} ${U(2.2)}`, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: U(0.6) });
-    const nm = h('div', 'h1', esc(d.title || ''), { fontSize: U(d.size || 4.4), color: '#fff', ...(d.plain ? { fontWeight: 600, letterSpacing: '-0.01em' } : {}) });
+    const nm = h('div', d.plain ? '' : 'h1', esc(d.title || ''), { fontSize: U(d.size || 4.4), color: '#fff', ...(d.plain ? { fontWeight: 600, letterSpacing: '-0.01em', fontSize: U(d.size || 3.6) } : {}) });
     const rl = h('div', '', esc(d.caption || ''), d.plain
       ? { fontSize: U(2.3), color: 'var(--accent)', fontWeight: 400, letterSpacing: '.01em' }
       : { fontSize: U(2.4), color: 'var(--accent)', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' });
@@ -528,6 +532,11 @@
     r.setProperty('--u', (Math.min(W, H) / 100) + 'px');
     ['fg', 'muted', 'accent', 'accent2', 'card', 'border', 'glow'].forEach(k => r.setProperty('--' + k, theme[k]));
     if (sc.accent) r.setProperty('--accent', sc.accent);
+    if (theme.fontDisplay) r.setProperty('--font-display', theme.fontDisplay);
+    if (theme.fontText) r.setProperty('--font-text', theme.fontText);
+    if (theme.displayWeight) r.setProperty('--display-weight', theme.displayWeight);
+    if (theme.displayTracking) r.setProperty('--display-tracking', theme.displayTracking);
+    st.classList.toggle('italic-accent', !!theme.italicAccent);
     initBg();
     if (sc.transparent) { document.documentElement.style.background = 'transparent'; document.body.style.background = 'transparent'; }
     document.getElementById('overlay').style.background = 'none';
@@ -540,7 +549,7 @@
     contentEl.appendChild(tpl.el);
     subsEl.innerHTML = '';
     subEls = (sc.subs || []).map(s => { const e = h('div', 'sub', esc(s.text), { display: 'none' }); subsEl.appendChild(e); return { e, ...s }; });
-    if (W < H) subsEl.style.paddingBottom = 'calc(var(--u) * 22)';
+    if (W < H) { subsEl.style.paddingBottom = 'calc(var(--u) * 38)'; subsEl.querySelectorAll('.sub').forEach(e => e.style.maxWidth = '78%'); }
   };
   window.seek = function (t) {
     if (scene.transparent) { ctx.clearRect(0, 0, W, H); tpl.update(t); subEls.forEach(s => { const on = t >= s.start && t < s.end; s.e.style.display = on ? 'block' : 'none'; }); return; }

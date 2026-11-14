@@ -3,9 +3,15 @@
 <head>
 <meta charset="utf-8">
 <style>
+  @font-face { font-family: 'Playfair'; src: url('fonts/PlayfairDisplay[wght].ttf'); font-weight: 400 900; }
+  @font-face { font-family: 'Playfair'; font-style: italic; src: url('fonts/PlayfairDisplay-Italic[wght].ttf'); font-weight: 400 900; }
+  @font-face { font-family: 'Cormorant'; src: url('fonts/CormorantGaramond[wght].ttf'); font-weight: 300 700; }
+  @font-face { font-family: 'Cormorant'; font-style: italic; src: url('fonts/CormorantGaramond-Italic[wght].ttf'); font-weight: 300 700; }
+  @font-face { font-family: 'Manrope'; src: url('fonts/Manrope[wght].ttf'); font-weight: 200 800; }
+  @font-face { font-family: 'Montserrat'; src: url('fonts/Montserrat[wght].ttf'); font-weight: 100 900; }
   html, body { margin: 0; padding: 0; overflow: hidden; background: #000; }
   * { box-sizing: border-box; }
-  #stage { position: relative; overflow: hidden; font-family: 'Inter', 'DejaVu Sans', sans-serif; color: var(--fg); }
+  #stage { position: relative; overflow: hidden; font-family: var(--font-text, 'Inter'), 'DejaVu Sans', sans-serif; color: var(--fg); }
   #bg, #content, #overlay, #subs, #frame { position: absolute; inset: 0; }
   #content { display: flex; align-items: center; justify-content: center; transform-origin: 50% 50%; }
   #overlay { pointer-events: none; mix-blend-mode: screen; }
@@ -18,7 +24,10 @@
   .kicker { letter-spacing: .35em; text-transform: uppercase; font-weight: 600; color: var(--accent);
             font-size: calc(var(--u)*2.0); display: flex; align-items: center; gap: calc(var(--u)*1.5); }
   .kicker .line { height: 2px; background: var(--accent); width: calc(var(--u)*6); }
-  .h1 { font-family: 'Inter Display', 'Inter', sans-serif; font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; }
+  .h1 { font-family: var(--font-display, 'Inter Display'), 'Inter', sans-serif; font-weight: var(--display-weight, 800); letter-spacing: var(--display-tracking, -0.03em); line-height: 1.02; }
+  .display { font-family: var(--font-display, 'Inter Display'), 'Inter', sans-serif; }
+  .italic-accent .accent { font-style: italic; }
+  .sub { font-family: var(--font-text, 'Inter'), sans-serif; font-weight: 500; letter-spacing: .005em; }
   .glow { text-shadow: 0 0 calc(var(--u)*3) var(--glow); }
   .word { display: inline-block; white-space: pre; will-change: transform, opacity, filter; }
   .char { display: inline-block; white-space: pre; }

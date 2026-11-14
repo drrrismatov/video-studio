@@ -5,7 +5,12 @@ import sys
 sys.path.insert(0, 'engine')
 import captions  # noqa: E402
 
-P = 'projects/friso-oila'
+FMT = sys.argv[1] if len(sys.argv) > 1 else "16:9"
+VERT = FMT == "9:16"
+P = 'projects/friso-oila' + ('-reels' if VERT else '')
+import os, shutil  # noqa: E402
+if VERT and not os.path.exists(f'{P}/asr'):
+    shutil.copytree('projects/friso-oila/asr', f'{P}/asr')
 # transcript fixes: spelling/punctuation only, spoken words unchanged
 fix = {"IMG_8304": [(" - ", " — ")], "IMG_7246": [(" - ", " — "), ("сплоченность", "сплочённость")],
        "IMG_3350": [(" - ", " — ")], "IMG_8005": [(" – ", " — ")], "IMG_9695": [("всю ее", "всю её"), ("еще", "ещё")]}
@@ -16,7 +21,7 @@ for f, rules in fix.items():
         for a, b in rules:
             sg["text"] = sg["text"].replace(a, b)
     json.dump(d, open(p, 'w'), ensure_ascii=False, indent=1)
-C = {f: captions.build(f'{P}/asr/{f}.json') for f in ["IMG_8005", "IMG_3350", "IMG_9695", "IMG_7046", "IMG_8304", "IMG_7246"]}
+C = {f: captions.build(f'{P}/asr/{f}.json', maxc=30 if VERT else 46) for f in ["IMG_8005", "IMG_3350", "IMG_9695", "IMG_7046", "IMG_8304", "IMG_7246"]}
 json.dump(C, open(f'{P}/asr/captions.json', 'w'), ensure_ascii=False, indent=1)
 
 D = {d["video"]: d for d in json.load(open('data/doctors.json'))["doctors"] if d.get("video")}
@@ -37,7 +42,8 @@ def doc(v, a, b, energy, tr="dissolve", note="", **kw):
     return sc
 
 
-def word(text, size=10):
+def word(text, size=None):
+    size = size or (7 if VERT else 10)
     return {"template": "statement", "data": {"text": f"*{text}*", "size": size, "style": "blur", "pos": "bottom",
                                               "shadow": True, "stagger": 0.07, "delay": 0.05}}
 
@@ -61,7 +67,7 @@ def smile(v, a, dur, **kw):
 S = {
     "title": "Friso — One Family. One Oila.",
     "logline": "Мы живём в разных городах и работаем в разных клиниках, но мы — одна большая семья. Оила.",
-    "format": "16:9", "fps": 30, "theme": "documentary", "accent": "#e8c99a",
+    "format": FMT, "fps": 30, "theme": "documentary", "accent": "#e8c99a",
     "music": {"mood": "piano", "key": "D", "bpm": 66, "volume": 0.8, "duck": 0.14},
     "subtitles": True, "whoosh": False,
     "grade": {"grain": 3, "vignette": True, "letterbox": False, "contrast": 1.02, "saturation": 1.0},
@@ -88,6 +94,7 @@ S = {
         {"template": "mosaic", "src": "inbox:IMG_7046.mov", "in": 14.85, "out": 20.45, "audio": True,
          "transition": "fadeblack", "transition_duration": 1.0, "energy": 0.5, "music_pause": 2.6, "duration": 10.5,
          "captions": C["IMG_7046"],
+         "cols": 2 if VERT else 3,
          "cells": [{"src": "inbox:IMG_8005.mov", "in": 24, "face": 0.4, "hflip": True},
                    {"src": "inbox:IMG_8304.MOV", "in": 18, "face": 0.43},
                    {"src": "inbox:IMG_3350.mov", "in": 8, "face": 0.3},
@@ -107,7 +114,8 @@ S = {
          "subs": False, "sfx": [{"kind": "applause", "at": 0.2, "gain": 0.45}],
          "visual_note": "ВСПЛЕСК: общее фото оживает — движение камеры, тёплый свет, конфетти, аплодисменты",
          "data": {"src": "/home/user/video-studio/inbox/IMG_1104.JPG", "flash": True, "confetti": 160, "confettiAt": 0.2,
-                  "kenburns": {"from": [1.0, 0, 0], "to": [1.16, 0, -3.5]}, "origin": "50% 62%",
+                  "kenburns": {"from": [1.0, 0, 0], "to": [1.16, 0, -3.5]} if not VERT else {"from": [1.0, 0, 0], "to": [1.08, 0, -1]},
+                  "origin": "50% 62%", **({"pan": [0, 100], "panY": 70} if VERT else {}),
                   "title": "Из разных уголков Узбекистана —", "subtitle": "с одним сердцем", "titleAt": 1.6, "size": 4.6}},
         {"template": "lines", "transition": "fadeblack", "energy": 0.55, "duration": 9, "subs": False,
          "visual_note": "Три благодарности, остаются на экране",

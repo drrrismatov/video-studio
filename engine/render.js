@@ -17,6 +17,8 @@ async function newPage(browser) {
 
 async function prep(page, scene) {
   await page.evaluate(([s, w, h]) => window.setup(s, w, h), [scene, job.width, job.height]);
+  await page.evaluate(() => Promise.all(['400 20px Playfair', 'italic 400 20px Playfair', '500 20px Playfair', 'italic 500 20px Playfair',
+    '400 20px Manrope', '500 20px Manrope', '600 20px Manrope'].map(f => document.fonts.load(f))));
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))));
 }
