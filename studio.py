@@ -31,6 +31,7 @@ import audio  # noqa: E402
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".mkv", ".avi", ".webm", ".mts", ".3gp"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".svg", ".webp", ".heic"}
+AUDIO_EXT = {".m4a", ".mp3", ".wav", ".ogg", ".opus", ".aac", ".flac", ".amr", ".caf"}
 
 
 def inbox_dir() -> Path:
@@ -92,11 +93,13 @@ class Project:
                 sc["_vo"] = None
                 continue
             v = sc.get("voice", voice)
-            key = h([text, v, speed])
+            key = h([text, v, sc.get("voice_speed", speed), sc.get("voice_fx")])
             f = self.build / "vo" / f"{sc['id']}.wav"
             if cache.get(sc["id"], {}).get("key") != key or not f.exists():
                 log(f"озвучка {sc['id']} ({v})")
-                dur = audio.tts(text, f, v, speed)
+                dur = audio.tts(text, f, v, sc.get("voice_speed", speed))
+                if sc.get("voice_fx"):
+                    dur = audio.voice_fx(f, sc["voice_fx"])
                 cache[sc["id"]] = {"key": key, "dur": dur}
             sc["_vo"] = {"file": str(f), "dur": cache[sc["id"]]["dur"]}
         cache_f.write_text(json.dumps(cache, indent=1))
@@ -567,7 +570,7 @@ def cmd_inbox():
         used |= set(re.findall(r'"inbox:([^"]+)"', sj.read_text()))
     rows = []
     for f in sorted(d.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
-        if f.suffix.lower() not in VIDEO_EXT | IMAGE_EXT or f.name.startswith("."):
+        if f.suffix.lower() not in VIDEO_EXT | IMAGE_EXT | AUDIO_EXT or f.name.startswith("."):
             continue
         pr = "" if f.suffix.lower() in IMAGE_EXT else subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(f)],
                             capture_output=True, text=True).stdout.strip()
@@ -597,10 +600,11 @@ def cmd_pull():
     for a in rel.get("assets", []):
         name = a["name"].removeprefix("default.")
         ctype = a.get("content_type", "")
-        if Path(name).suffix.lower() not in VIDEO_EXT | IMAGE_EXT:
-            if not ctype.startswith(("video/", "image/")):
+        if Path(name).suffix.lower() not in VIDEO_EXT | IMAGE_EXT | AUDIO_EXT:
+            if not ctype.startswith(("video/", "image/", "audio/")):
                 continue
-            name += {"video/quicktime": ".mov", "video/x-matroska": ".mkv", "video/webm": ".webm"}.get(ctype, ".mp4")
+            name += {"video/quicktime": ".mov", "video/x-matroska": ".mkv", "video/webm": ".webm", "audio/mpeg": ".mp3",
+                     "audio/mp4": ".m4a", "audio/x-m4a": ".m4a", "audio/wav": ".wav", "audio/ogg": ".ogg"}.get(ctype, ".mp4")
         dst = d / name
         if dst.exists() and dst.stat().st_size == a["size"]:
             continue

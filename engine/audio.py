@@ -18,6 +18,7 @@ VOICES = {
     "dmitri": "vits-piper-ru_RU-dmitri-medium/ru_RU-dmitri-medium.onnx",
     "denis": "vits-piper-ru_RU-denis-medium/ru_RU-denis-medium.onnx",
     "irina": "vits-piper-ru_RU-irina-medium/ru_RU-irina-medium.onnx",
+    "ruslan": "vits-piper-ru_RU-ruslan-medium/ru_RU-ruslan-medium.onnx",
 }
 
 # ---------------------------------------------------------------- utilities
@@ -154,6 +155,35 @@ def tts(text: str, out: Path, voice: str = "dmitri", speed: float = 1.0) -> floa
     x = reverb(x, size=0.6, mix=0.06)
     write_wav(out, x)
     return len(x) / SR
+
+def voice_fx(path: Path, fx: dict) -> float:
+    """Character voice design: pitch (semitones), tempo, EQ colour, grit, room. Rewrites file, returns duration."""
+    p = 2 ** (fx.get("pitch", 0) / 12)
+    tempo = fx.get("tempo", 1.0)
+    chain = [f"asetrate={int(SR * p)}", f"aresample={SR}"]
+    at = tempo / p
+    while at < 0.5:
+        chain.append("atempo=0.5"); at /= 0.5
+    while at > 2.0:
+        chain.append("atempo=2.0"); at /= 2.0
+    chain.append(f"atempo={at:.4f}")
+    eq = {"deep": "bass=g=5:f=140,treble=g=-2", "bright": "treble=g=4:f=4000,bass=g=-3",
+          "phone": "highpass=f=300,lowpass=f=3400", "warm": "bass=g=2:f=180,treble=g=-1"}.get(fx.get("eq"))
+    if eq:
+        chain.append(eq)
+    tmp = path.with_suffix(".fx.wav")
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(path), "-af", ",".join(chain), "-ar", str(SR), str(tmp)], check=True)
+    x = read_wav(tmp); tmp.unlink()
+    if fx.get("grit"):
+        x = softclip(x * (1 + 3 * fx["grit"]), 1 + 2 * fx["grit"]) * 0.8
+    room = fx.get("room")
+    if room:
+        size, mix = {"hall": (2.6, 0.28), "tent": (0.5, 0.10), "clinic": (0.9, 0.12), "close": (0.3, 0.05)}[room]
+        x = reverb(x, size, mix)
+    x = x / (np.abs(x).max() + 1e-9) * 0.9
+    write_wav(path, x)
+    return len(x) / SR
+
 
 # ---------------------------------------------------------------- music
 
