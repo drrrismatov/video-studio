@@ -568,6 +568,72 @@
     };
   };
 
+  // ------------------------------------------------------------- shots: edited sequence of full-frame artworks
+  // d.shots: [{src, from, to, kb:{from:[s,xPct,yPct], to:[s,xPct,yPct]}, origin, shake}], d.dust, d.rays, d.hook, d.label
+  T.shots = (d, D) => {
+    const box = h('div', '', null, { position: 'absolute', inset: 0, overflow: 'hidden', background: '#000' });
+    const shots = (d.shots || []).map(sh => {
+      if (sh.panels) {   // split screen: several faces in rows/cols (e.g. «three eras — one face»)
+        const wrap = h('div', '', null, { position: 'absolute', inset: 0, display: 'none', flexDirection: sh.layout === 'cols' ? 'row' : 'column', gap: '6px', background: '#e8c99a' });
+        const imgs = sh.panels.map(pn => {
+          const cell = h('div', '', null, { flex: 1, overflow: 'hidden', position: 'relative' });
+          const im = h('img', '', null, { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: pn.pos || '50% 30%', transformOrigin: pn.origin || pn.pos || '50% 30%' });
+          im.src = pn.src; cell.appendChild(im); wrap.appendChild(cell); return { im, cell, pn };
+        });
+        box.appendChild(wrap); return { ...sh, img: wrap, imgs };
+      }
+      const img = h('img', '', null, { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+        objectPosition: sh.pos || '50% 50%', transformOrigin: sh.origin || '50% 50%', display: 'none', willChange: 'transform' });
+      img.src = sh.src; box.appendChild(img); return { ...sh, img };
+    });
+    const rays = h('div', '', null, { position: 'absolute', inset: '-20%', mixBlendMode: 'screen', pointerEvents: 'none' });
+    const dust = d.dust ? confettiLayer(31, 0, 0) : null;
+    let motes = [];
+    const cv = h('canvas', '', null, { position: 'absolute', inset: 0, width: '100%', height: '100%', mixBlendMode: 'screen' });
+    cv.width = W; cv.height = H; const g = cv.getContext('2d'); const r = mulberry(99);
+    if (d.dust) motes = Array.from({ length: d.dust }, () => ({ x: r(), y: r(), s: 1 + r() * 3, v: 0.004 + r() * 0.01, ph: r() * 6 }));
+    box.append(rays, cv);
+    const vg = h('div', '', null, { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,.5) 100%)' });
+    box.appendChild(vg);
+    let label, hook;
+    if (d.label) { label = h('div', 'display', esc(d.label), { position: 'absolute', left: '7%', top: '9%', fontSize: U(4.6), fontStyle: 'italic', color: '#f3e3c8', textShadow: '0 2px 16px rgba(0,0,0,.9)' }); box.appendChild(label); }
+    if (d.hook) { hook = h('div', 'display', d.hook.replace(/\*(.+?)\*/g, '<span class="accent">$1</span>'), { position: 'absolute', left: '6%', right: '6%', top: d.hookTop || '62%', textAlign: 'center', fontSize: U(6.6), fontWeight: 500, color: '#fff', lineHeight: 1.15, textShadow: '0 4px 24px rgba(0,0,0,.95)',
+        padding: `${U(2.2)} ${U(3)}`, background: 'radial-gradient(ellipse at 50% 50%, rgba(10,6,4,.7) 0%, rgba(10,6,4,.4) 60%, rgba(10,6,4,0) 100%)' }); box.appendChild(hook); }
+    return {
+      el: box, update(t) {
+        shots.forEach(sh => {
+          const on = t >= sh.from && t < sh.to;
+          sh.img.style.display = on ? (sh.panels ? 'flex' : 'block') : 'none';
+          if (!on) return;
+          if (sh.panels) {
+            sh.imgs.forEach((o, i) => {
+              const a = E.out(P(t, sh.from + i * (sh.stagger ?? 0.35), 0.6));
+              o.cell.style.opacity = a;
+              o.im.style.transform = `scale(${(o.pn.scale || 1.15) * (1 + 0.06 * P(t, sh.from, sh.to - sh.from))})`;
+            });
+            return;
+          }
+          const k = sh.kb || { from: [1, 0, 0], to: [1.08, 0, 0] };
+          const x = E.inOut(P(t, sh.from, sh.to - sh.from));
+          const sk = sh.shake ? sh.shake * Math.sin(t * 31) : 0;
+          sh.img.style.transform = `scale(${lerp(k.from[0], k.to[0], x)}) translate(${lerp(k.from[1], k.to[1], x) + sk}%, ${lerp(k.from[2], k.to[2], x)}%)`;
+          if (sh.posFrom && sh.posTo) sh.img.style.objectPosition = `${lerp(sh.posFrom[0], sh.posTo[0], x)}% ${lerp(sh.posFrom[1], sh.posTo[1], x)}%`;
+          const fl = d.flicker ? (0.93 + 0.07 * Math.sin(t * 13) * Math.sin(t * 7.3) + 0.03 * Math.sin(t * 29)) : 1;
+          sh.img.style.filter = (sh.filter || '') + (d.flicker ? ` brightness(${fl.toFixed(3)})` : '');
+        });
+        if (d.rays) { const a = 0.18 + 0.06 * Math.sin(t * 0.9); rays.style.background = `repeating-linear-gradient(${d.rays}deg, rgba(255,214,150,0) 0px, rgba(255,214,150,${a * 0.5}) 60px, rgba(255,214,150,0) 160px)`; rays.style.transform = `translateX(${Math.sin(t * 0.3) * 2}%)`; }
+        g.clearRect(0, 0, W, H);
+        motes.forEach(m => {
+          const y = ((m.y - t * m.v) % 1 + 1) % 1, x = m.x + 0.015 * Math.sin(t * 0.6 + m.ph);
+          g.fillStyle = `rgba(255,226,170,${0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * 2 + m.ph))})`;
+          g.beginPath(); g.arc(x * W, y * H, m.s, 0, 6.283); g.fill();
+        });
+        if (label) fadeUp(label, t, d.labelAt ?? 0.4, 0.8, 1);
+        if (hook) { const a = E.out(P(t, d.hookAt ?? 0.2, 0.6)); const z = 1 - E.inOut(P(t, (d.hookAt ?? 0.2) + (d.hookHold ?? 2.2), 0.4)); hook.style.opacity = a * z; hook.style.transform = `translateY(${(1 - a) * 2}vh)`; }
+      }
+    };
+  };
+
   T.none = () => ({ el: h('div'), update() {} });
 
   // lower third — name / role plate over footage
@@ -621,6 +687,7 @@
     subsEl.innerHTML = '';
     subEls = (sc.subs || []).map(s => { const e = h('div', 'sub', esc(s.text), { display: 'none' }); subsEl.appendChild(e); return { e, ...s }; });
     if (W < H) { subsEl.style.paddingBottom = 'calc(var(--u) * 38)'; subsEl.querySelectorAll('.sub').forEach(e => e.style.maxWidth = '78%'); }
+    if (sc.data && sc.data.subsY) { subsEl.style.alignItems = 'flex-start'; subsEl.style.paddingBottom = '0'; subsEl.style.paddingTop = `calc(${sc.data.subsY} * ${H}px)`; }
   };
   window.seek = function (t) {
     if (scene.transparent) { ctx.clearRect(0, 0, W, H); tpl.update(t); subEls.forEach(s => { const on = t >= s.start && t < s.end; s.e.style.display = on ? 'block' : 'none'; }); return; }

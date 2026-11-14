@@ -1,0 +1,167 @@
+{
+ "title": "Ничего не меняется — тест сцены",
+ "format": "9:16",
+ "fps": 30,
+ "theme": "documentary",
+ "accent": "#e8c99a",
+ "music": {
+  "mood": "suite",
+  "volume": 0.8,
+  "duck": 0.22
+ },
+ "subtitles": true,
+ "whoosh": false,
+ "grade": {
+  "grain": 2,
+  "vignette": false,
+  "contrast": 1.02,
+  "saturation": 1.02
+ },
+ "scenes": [
+  {
+   "template": "shots",
+   "lead": 4.3,
+   "min_duration": 3,
+   "energy": 0.6,
+   "music_style": "oriental",
+   "transition": "none",
+   "narration": "Вылечишь моего сына — | осыплю золотом. | Не вылечишь — | голову с плеч.",
+   "voice": "dmitri",
+   "voice_speed": 0.8,
+   "voice_fx": {
+    "pitch": -3.5,
+    "tempo": 0.9,
+    "eq": "deep",
+    "room": "hall"
+   },
+   "sfx": [
+    {
+     "kind": "shing",
+     "at": 0.25,
+     "gain": 0.8
+    }
+   ],
+   "data": {
+    "dust": 60,
+    "rays": -62,
+    "label": "XV век",
+    "labelAt": 2.7,
+    "hook": "Быть врачом.<br>*В любом веке.*",
+    "hookAt": 0.2,
+    "hookHold": 1.9,
+    "shots": [
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/padishah.webp",
+      "from": 0,
+      "to": 2.5,
+      "origin": "40% 52%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.12,
+        0,
+        0
+       ]
+      },
+      "shake": 0.12
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/bg_palace.webp",
+      "from": 2.5,
+      "to": 4.3,
+      "origin": "60% 42%",
+      "kb": {
+       "from": [
+        1.04,
+        0,
+        0
+       ],
+       "to": [
+        1.18,
+        0,
+        -1.5
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/padishah.webp",
+      "from": 4.3,
+      "to": 5.3,
+      "origin": "45% 20%",
+      "kb": {
+       "from": [
+        1.18,
+        0,
+        0
+       ],
+       "to": [
+        1.26,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/prince.webp",
+      "from": 5.3,
+      "to": 6.35,
+      "origin": "45% 35%",
+      "kb": {
+       "from": [
+        1.02,
+        0,
+        0
+       ],
+       "to": [
+        1.1,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/padishah.webp",
+      "from": 6.35,
+      "to": 8.3,
+      "origin": "45% 22%",
+      "kb": {
+       "from": [
+        1.05,
+        0,
+        0
+       ],
+       "to": [
+        1.2,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/hakim.webp",
+      "from": 8.3,
+      "to": 30,
+      "origin": "50% 35%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.14,
+        0,
+        0
+       ]
+      }
+     }
+    ]
+   },
+   "visual_note": "Хук: ятаган в камеру → дворец XV век → падишах → принц → падишах → лекарь"
+  }
+ ]
+}

@@ -130,7 +130,22 @@ def note_hz(midi: float) -> float:
 # ---------------------------------------------------------------- voiceover
 
 def tts(text: str, out: Path, voice: str = "dmitri", speed: float = 1.0) -> float:
-    """Synthesize text with Piper; returns duration seconds."""
+    """Synthesize text with Piper; returns duration seconds. «|» inserts a dramatic pause (0.55 s)."""
+    if "|" in text:
+        parts = [p.strip() for p in text.split("|") if p.strip()]
+        chunks = []
+        for k, ptxt in enumerate(parts):
+            f = out.with_suffix(f".p{k}.wav")
+            tts(ptxt, f, voice, speed)
+            chunks.append(read_wav(f)); f.unlink()
+        gap = np.zeros((int(0.55 * SR), 2))
+        x = chunks[0]; parts_t = [[0.0, len(x) / SR]]
+        for c in chunks[1:]:
+            x = np.concatenate([x, gap]); a = len(x) / SR
+            x = np.concatenate([x, c]); parts_t.append([a, len(x) / SR])
+        write_wav(out, x)
+        out.with_suffix(".parts.json").write_text(json.dumps(parts_t))   # exact phrase boundaries for editing
+        return len(x) / SR
     from piper import PiperVoice, SynthesisConfig
 
     model = ROOT / "assets" / "voices" / VOICES[voice]
@@ -182,6 +197,9 @@ def voice_fx(path: Path, fx: dict) -> float:
         x = reverb(x, size, mix)
     x = x / (np.abs(x).max() + 1e-9) * 0.9
     write_wav(path, x)
+    pj = path.with_suffix(".parts.json")
+    if pj.exists():  # tempo change rescales phrase boundaries
+        pj.write_text(json.dumps([[a / tempo, b / tempo] for a, b in json.loads(pj.read_text())]))
     return len(x) / SR
 
 
