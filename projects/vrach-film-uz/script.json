@@ -1,0 +1,612 @@
+{
+ "title": "Hech narsa oʻzgarmaydi",
+ "format": "9:16",
+ "fps": 30,
+ "theme": "documentary",
+ "accent": "#e8c99a",
+ "logline": "Меняются века, меняются угрозы — врач всё равно лечит. Коллеги, хватит хейтить друг друга.",
+ "music": {
+  "mood": "suite",
+  "volume": 0.9,
+  "duck": 1.0
+ },
+ "subtitles": true,
+ "whoosh": true,
+ "grade": {
+  "grain": 2,
+  "vignette": false,
+  "contrast": 1.02,
+  "saturation": 1.02
+ },
+ "transition_duration": 0.5,
+ "scenes": [
+  {
+   "template": "shots",
+   "lead": 4.3,
+   "energy": 0.6,
+   "music_style": "oriental",
+   "transition": "none",
+   "narration": "Вылечишь моего сына — | осыплю золотом. | Не вылечишь — | голову с плеч.",
+   "voice": "dmitri",
+   "voice_speed": 0.8,
+   "voice_fx": {
+    "pitch": -3.5,
+    "tempo": 0.9,
+    "eq": "deep",
+    "room": "hall"
+   },
+   "sfx": [
+    {
+     "kind": "shing",
+     "at": 0.25,
+     "gain": 0.8
+    }
+   ],
+   "visual_note": "ХУК: ятаган в камеру → дворец, XV век → падишах / принц / лекарь",
+   "data": {
+    "dust": 60,
+    "rays": -62,
+    "label": "XV asr",
+    "labelAt": 2.7,
+    "hook": "Shifokor boʻlish.<br>*Har qanday asrda.*",
+    "hookAt": 0.2,
+    "hookHold": 1.9,
+    "shots": [
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/padishah.webp",
+      "from": 0,
+      "to": 2.5,
+      "origin": "40% 52%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.12,
+        0,
+        0
+       ]
+      },
+      "shake": 0.12
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/bg_palace.webp",
+      "from": 2.5,
+      "to": 4.3,
+      "origin": "60% 42%",
+      "kb": {
+       "from": [
+        1.04,
+        0,
+        0
+       ],
+       "to": [
+        1.18,
+        0,
+        -1.5
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/padishah.webp",
+      "from": 4.3,
+      "to": 5.073117913832199,
+      "origin": "45% 20%",
+      "kb": {
+       "from": [
+        1.18,
+        0,
+        0
+       ],
+       "to": [
+        1.26,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/prince.webp",
+      "from": 5.073117913832199,
+      "to": 6.316780045351473,
+      "origin": "45% 35%",
+      "kb": {
+       "from": [
+        1.02,
+        0,
+        0
+       ],
+       "to": [
+        1.1,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/padishah.webp",
+      "from": 6.316780045351473,
+      "to": 8.279062736205592,
+      "origin": "45% 22%",
+      "kb": {
+       "from": [
+        1.05,
+        0,
+        0
+       ],
+       "to": [
+        1.2,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/hakim.webp",
+      "from": 8.279062736205592,
+      "to": 13.129,
+      "origin": "50% 36%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.16,
+        0,
+        0
+       ]
+      }
+     }
+    ],
+    "subsSize": 4.4
+   },
+   "subs_text": "Oʻgʻlimni davolasang — | seni oltinga koʻmaman. | Davolay olmasang — | boshing ketadi."
+  },
+  {
+   "template": "shots",
+   "lead": 1.8,
+   "energy": 0.5,
+   "music_style": "mountain",
+   "transition": "fadeblack",
+   "narration": "Выживет отец — | награжу. | Умрёт... | умрёшь вместе с ним.",
+   "voice": "ruslan",
+   "voice_speed": 0.78,
+   "voice_fx": {
+    "pitch": -4,
+    "tempo": 0.88,
+    "eq": "deep",
+    "grit": 0.25,
+    "room": "tent"
+   },
+   "visual_note": "Палатка в горах, ночь: воин с автоматом, раненый отец, врач опустил глаза",
+   "data": {
+    "dust": 25,
+    "flicker": true,
+    "label": "XX asr",
+    "labelAt": 0.4,
+    "shots": [
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/tent_wide.webp",
+      "from": 0,
+      "to": 2.35,
+      "origin": "50% 45%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.08,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/father.webp",
+      "from": 2.35,
+      "to": 3.9026334776334775,
+      "origin": "35% 30%",
+      "kb": {
+       "from": [
+        1.04,
+        0,
+        0
+       ],
+       "to": [
+        1.14,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/warrior.webp",
+      "from": 3.9026334776334775,
+      "to": 5.358802308802309,
+      "origin": "45% 22%",
+      "kb": {
+       "from": [
+        1.05,
+        0,
+        0
+       ],
+       "to": [
+        1.15,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/tent_wide.webp",
+      "from": 5.358802308802309,
+      "to": 6.432369614512472,
+      "origin": "26% 54%",
+      "kb": {
+       "from": [
+        1.55,
+        0,
+        0
+       ],
+       "to": [
+        1.7,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/warrior.webp",
+      "from": 6.432369614512472,
+      "to": 10.413,
+      "origin": "45% 20%",
+      "kb": {
+       "from": [
+        1.25,
+        0,
+        0
+       ],
+       "to": [
+        1.5,
+        0,
+        0
+       ]
+      }
+     }
+    ],
+    "subsSize": 4.4
+   },
+   "subs_text": "Otam tirik qolsa — | mukofotlayman. | Oʻlsa... | sen ham u bilan birga oʻlasan."
+  },
+  {
+   "template": "shots",
+   "lead": 1.3,
+   "energy": 0.6,
+   "music_style": "clinic",
+   "transition": "fadeblack",
+   "narration": "Либо я выздоровлю, | либо я вас засужу! | Жалобу напишу, | в соцсетях уничтожу!",
+   "voice": "irina",
+   "voice_speed": 1.05,
+   "voice_fx": {
+    "pitch": 1.5,
+    "tempo": 1.06,
+    "eq": "bright",
+    "room": "clinic"
+   },
+   "sfx": [
+    {
+     "kind": "ding",
+     "at": 0.5,
+     "gain": 0.5
+    }
+   ],
+   "visual_note": "Сегодня: кабинет, пациентка снимает врача на телефон",
+   "data": {
+    "label": "Bugun",
+    "labelAt": 0.4,
+    "shots": [
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/clinic.webp",
+      "from": 0,
+      "to": 3.036533607153553,
+      "posFrom": [
+       0,
+       50
+      ],
+      "posTo": [
+       35,
+       50
+      ],
+      "origin": "30% 50%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.05,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/clinic.webp",
+      "from": 3.036533607153553,
+      "to": 5.043165190604544,
+      "pos": "78% 50%",
+      "origin": "66% 27%",
+      "kb": {
+       "from": [
+        1.45,
+        0,
+        0
+       ],
+       "to": [
+        1.6,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/clinic.webp",
+      "from": 5.043165190604544,
+      "to": 6.6886321824327215,
+      "pos": "0% 50%",
+      "origin": "35% 48%",
+      "kb": {
+       "from": [
+        1.7,
+        0,
+        0
+       ],
+       "to": [
+        1.95,
+        0,
+        0
+       ]
+      },
+      "shake": 0.08
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/clinic.webp",
+      "from": 6.6886321824327215,
+      "to": 10.241,
+      "pos": "78% 50%",
+      "origin": "66% 27%",
+      "kb": {
+       "from": [
+        1.7,
+        0,
+        0
+       ],
+       "to": [
+        1.95,
+        0,
+        0
+       ]
+      }
+     }
+    ],
+    "subsSize": 4.4
+   },
+   "subs_text": "Yo men tuzalaman, | yo sizni sudga beraman! | Shikoyat yozaman, | ijtimoiy tarmoqlarda sizni yoʻq qilaman!"
+  },
+  {
+   "template": "shots",
+   "lead": 1.4,
+   "energy": 0.4,
+   "music_style": "suspense",
+   "transition": "fadewhite",
+   "music_pause": 0.6,
+   "narration": "Меняются век+а. | Меняются угр+озы. | Не меняется одно — | врач всё равно лечит.",
+   "voice": "denis",
+   "voice_speed": 0.9,
+   "voice_fx": {
+    "pitch": -2.5,
+    "tempo": 0.86,
+    "eq": "warm",
+    "room": "close"
+   },
+   "sfx": [
+    {
+     "kind": "heartbeat",
+     "at": 0.2,
+     "gain": 0.6
+    }
+   ],
+   "visual_note": "ПОВОРОТ: три эпохи — один мудрый взгляд врача",
+   "data": {
+    "subsY": 0.645,
+    "shots": [
+     {
+      "from": 0,
+      "to": 11.777,
+      "layout": "rows",
+      "stagger": 0.45,
+      "panels": [
+       {
+        "src": "/home/user/video-studio/projects/vrach-reels/art/hakim.webp",
+        "pos": "50% 36%",
+        "scale": 1.35
+       },
+       {
+        "src": "/home/user/video-studio/projects/vrach-reels/art/tent_wide.webp",
+        "pos": "26% 54%",
+        "scale": 1.9
+       },
+       {
+        "src": "/home/user/video-studio/projects/vrach-reels/art/clinic.webp",
+        "pos": "66% 22%",
+        "origin": "66% 40%",
+        "scale": 1.6
+       }
+      ]
+     }
+    ],
+    "subsSize": 4.4
+   },
+   "subs_text": "Asrlar oʻzgaradi. | Tahdidlar oʻzgaradi. | Faqat bir narsa oʻzgarmaydi — | shifokor baribir davolaydi."
+  },
+  {
+   "template": "shots",
+   "lead": 0.8,
+   "energy": 0.4,
+   "music_style": "piano",
+   "transition": "fadeblack",
+   "narration": "Собираешься стать врачом — | не жди справедливости. | Не жди одобрения. | Делай это сердцем. | Ошибаются все люди. | А спасают — единицы.",
+   "voice": "denis",
+   "voice_speed": 0.9,
+   "voice_fx": {
+    "pitch": -2.5,
+    "tempo": 0.86,
+    "eq": "warm",
+    "room": "close"
+   },
+   "visual_note": "Закат над Ташкентом: уставший врач на крыше больницы",
+   "data": {
+    "dust": 20,
+    "rays": -35,
+    "shots": [
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/doctor_roof.webp",
+      "from": 0,
+      "to": 8.061061013552708,
+      "pos": "45% 50%",
+      "origin": "45% 40%",
+      "kb": {
+       "from": [
+        1.0,
+        0,
+        0
+       ],
+       "to": [
+        1.1,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/clinic.webp",
+      "from": 8.061061013552708,
+      "to": 10.282597690238887,
+      "pos": "78% 50%",
+      "origin": "66% 27%",
+      "kb": {
+       "from": [
+        1.35,
+        0,
+        0
+       ],
+       "to": [
+        1.45,
+        0,
+        0
+       ]
+      }
+     },
+     {
+      "src": "/home/user/video-studio/projects/vrach-reels/art/doctor_roof.webp",
+      "from": 10.282597690238887,
+      "to": 16.862000000000002,
+      "pos": "45% 50%",
+      "origin": "46% 33%",
+      "kb": {
+       "from": [
+        1.3,
+        0,
+        0
+       ],
+       "to": [
+        1.5,
+        0,
+        0
+       ]
+      }
+     }
+    ],
+    "subsSize": 4.4
+   },
+   "subs_text": "Shifokor boʻlmoqchimisan — | adolat kutma. | Maqtov kutma. | Buni yurakdan qil. | Xato hamma odamlarda boʻladi. | Qutqaradiganlar esa — sanoqli."
+  },
+  {
+   "template": "shots",
+   "lead": 0.8,
+   "energy": 0.6,
+   "music_style": "piano",
+   "transition": "fadeblack",
+   "narration": "Тебя по-настоящему поймут | только те, кто носит такой же халат.",
+   "voice": "denis",
+   "voice_speed": 0.9,
+   "voice_fx": {
+    "pitch": -2.5,
+    "tempo": 0.86,
+    "eq": "warm",
+    "room": "close"
+   },
+   "visual_note": "Три врача трёх эпох рядом",
+   "data": {
+    "shots": [
+     {
+      "from": 0,
+      "to": 8.369,
+      "layout": "cols",
+      "stagger": 0.3,
+      "panels": [
+       {
+        "src": "/home/user/video-studio/projects/vrach-reels/art/hakim.webp",
+        "pos": "50% 36%",
+        "scale": 1.05
+       },
+       {
+        "src": "/home/user/video-studio/projects/vrach-reels/art/tent_wide.webp",
+        "pos": "24% 54%",
+        "origin": "24% 54%",
+        "scale": 1.25
+       },
+       {
+        "src": "/home/user/video-studio/projects/vrach-reels/art/doctor_roof.webp",
+        "pos": "40% 40%",
+        "origin": "40% 30%",
+        "scale": 1.05
+       }
+      ]
+     }
+    ],
+    "subsSize": 4.4
+   },
+   "subs_text": "Seni chin dildan | faqat senday oq xalat kiyganlar tushunadi."
+  },
+  {
+   "template": "lines",
+   "energy": 0.7,
+   "music_style": "piano",
+   "transition": "fadeblack",
+   "duration": 7.5,
+   "subs": false,
+   "visual_note": "Призыв: коллеги, хватит хейтить друг друга",
+   "data": {
+    "lines": [
+     "Hamkasblar,",
+     "bir-biringizni yomonlashni bas qiling.",
+     "Bizni *hukm qiladiganlar* baribir yetarli.",
+     "Buni hamkasbingizga yuboring ♥"
+    ],
+    "stack": true,
+    "size": 5.0,
+    "lead": 0.4,
+    "tail": 1.4
+   }
+  }
+ ],
+ "voice_off": true
+}

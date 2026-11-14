@@ -687,6 +687,7 @@
     subsEl.innerHTML = '';
     subEls = (sc.subs || []).map(s => { const e = h('div', 'sub', esc(s.text), { display: 'none' }); subsEl.appendChild(e); return { e, ...s }; });
     if (W < H) { subsEl.style.paddingBottom = 'calc(var(--u) * 38)'; subsEl.querySelectorAll('.sub').forEach(e => e.style.maxWidth = '78%'); }
+    if (sc.data && sc.data.subsSize) subsEl.querySelectorAll('.sub').forEach(e => { e.style.fontSize = `calc(var(--u) * ${sc.data.subsSize})`; e.style.maxWidth = '86%'; });
     if (sc.data && sc.data.subsY) { subsEl.style.alignItems = 'flex-start'; subsEl.style.paddingBottom = '0'; subsEl.style.paddingTop = `calc(${sc.data.subsY} * ${H}px)`; }
   };
   window.seek = function (t) {

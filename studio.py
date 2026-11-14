@@ -137,6 +137,22 @@ class Project:
             sc["_subs"] = self.subtitles(sc) if self.script.get("subtitles", True) else []
 
     def subtitles(self, sc):
+        st = sc.get("subs_text")
+        if st and sc.get("_vo") and sc.get("subs") is not False:   # translated subtitles, one per spoken phrase
+            parts = [x.strip() for x in st.split("|") if x.strip()]
+            pj = Path(sc["_vo"]["file"]).with_suffix(".parts.json")
+            times = json.loads(pj.read_text()) if pj.exists() else None
+            lead = sc["_t"]["lead"]
+            if not times or len(times) != len(parts):
+                dur = sc["_vo"]["dur"]; tot = sum(len(x) for x in parts); t0 = 0; times = []
+                for x in parts:
+                    d = dur * len(x) / tot; times.append([t0, t0 + d]); t0 += d
+            out = []
+            for (a, b), txt in zip(times, parts):
+                out.append({"start": round(lead + a - 0.05, 2), "end": round(lead + b + 0.35, 2), "text": txt})
+            for x, y in zip(out, out[1:]):
+                x["end"] = min(x["end"], y["start"])
+            return out
         if sc.get("captions") is not None:
             if sc.get("subs") is False:
                 return []
@@ -453,8 +469,8 @@ class Project:
 
     def stage_mix(self):
         m = self.script.get("music", {})
-        vo = [{"file": sc["_vo"]["file"], "start": sc["_t"]["start"] + sc["_t"]["lead"]}
-              for sc in self.scenes if sc.get("_vo")]
+        vo = [] if self.script.get("voice_off") else [{"file": sc["_vo"]["file"], "start": sc["_t"]["start"] + sc["_t"]["lead"]}
+                                                      for sc in self.scenes if sc.get("_vo")]
         sfx = []
         for i, sc in enumerate(self.scenes):
             t = sc["_t"]
