@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "engine"))
 import audio  # noqa: E402
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".mkv", ".avi", ".webm", ".mts", ".3gp"}
+IMAGE_EXT = {".jpg", ".jpeg", ".png", ".svg", ".webp", ".heic"}
 
 
 def inbox_dir() -> Path:
@@ -114,7 +115,7 @@ class Project:
             vo = sc["_vo"]["dur"] if sc.get("_vo") else 0
             tail = 0.7 + td_out
             dur = max(sc.get("min_duration", 3.0), lead + vo + tail if vo else 0)
-            if sc.get("template") == "footage" and "out" in sc:
+            if sc.get("template") in ("footage", "mosaic") and "out" in sc:
                 if sc.get("audio", True) and not vo:
                     lead = 0.0  # live sound starts with the picture
                 dur = max(dur, sc["out"] - sc.get("in", 0) + (td_out if sc.get("audio", True) else 0))
@@ -137,7 +138,7 @@ class Project:
                 return []
             off = sc.get("in", 0)
             return [{"start": round(c["start"] - off, 2), "end": round(c["end"] - off, 2), "text": c["text"]}
-                    for c in sc["captions"] if c["end"] > off and c["start"] < sc.get("out", 1e9)]
+                    for c in sc["captions"] if c["end"] > off + 0.3 and c["start"] < sc.get("out", 1e9) - 0.3]
         text = (sc.get("narration") or "").replace("*", "").replace("_", "").strip()
         if not text or not sc.get("_vo") or sc.get("subs") is False:
             return []
@@ -193,13 +194,18 @@ class Project:
                            "out": str(self.build / "stills" / f"{sc['id']}.png")})
         log(f"раскадровка: {len(stills)} кадров")
         for st, sc in zip(stills, self.scenes):
-            if sc.get("template") == "footage":
+            if sc.get("template") in ("footage", "mosaic"):
                 ov = sc.get("overlay") or {}
                 st["scene"].update(template=ov.get("template", "none"), data=ov.get("data", {}), transparent=True)
                 if sc.get("overlay", {}).get("template") == "lower":
                     st["t"] = 2.5
         self.run_render({"width": self.W, "height": self.H, "fps": self.fps, "stills": stills})
         for st, sc in zip(stills, self.scenes):
+            if sc.get("template") == "mosaic":
+                bg = self.build / "stills" / f"{sc['id']}.bg.png"
+                subprocess.run(self.mosaic_cmd(sc, str(bg), st["out"], ss=st["t"], frames=1), check=True)
+                bg.replace(st["out"])
+                continue
             if sc.get("template") == "footage":
                 bg = self.build / "stills" / f"{sc['id']}.bg.png"
                 subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{sc.get('in', 0) + min(st['t'], sc['out'] - sc.get('in', 0) - 0.1):.2f}",
@@ -266,7 +272,7 @@ class Project:
             out = self.build / "clips" / f"{sc['id']}.mp4"
             key = h([p, tpl_key, self.W, self.H, self.fps])
             sc["_clip"] = str(out)
-            if sc.get("template") == "footage":
+            if sc.get("template") in ("footage", "mosaic"):
                 key = h([key, self.media(sc["src"]).stat().st_mtime, {k: v for k, v in sc.items() if not k.startswith("_")},
                          inspect.getsource(Project.footage_vf), inspect.getsource(Project.render_footage)])
                 if cache.get(sc["id"]) != key or not out.exists():
@@ -318,6 +324,8 @@ class Project:
             vf = f"fps={self.fps},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},{push},setsar=1"
         if sc.get("speed"):
             vf = f"setpts=PTS/{sc['speed']}," + vf
+        if sc.get("sharpen"):  # low-res phone source: gentle detail recovery after upscale
+            vf += ",unsharp=5:5:0.5:5:5:0.0"
         if sc.get("hflip"):  # selfie camera mirror -> true orientation (text readable)
             vf = "hflip," + vf
         if sc.get("look"):
@@ -325,7 +333,37 @@ class Project:
                          "bw": "hue=s=0", "punch": "eq=contrast=1.1:saturation=1.15"}.get(sc["look"], "null")
         return vf
 
+    def mosaic_cmd(self, sc, out, ovl, ss=0.0, frames=None):
+        """All doctors on one screen: grid of live cells, face-centred crops, staggered fade-in."""
+        cells = sc["cells"]; W, H = self.W, self.H
+        cols = sc.get("cols", 3); rows = (len(cells) + cols - 1) // cols
+        gap = sc.get("gap", 10)
+        cw, ch = (W - gap * (cols + 1)) // cols // 2 * 2, (H - gap * (rows + 1)) // rows // 2 * 2
+        D = sc["_t"]["dur"]; stg = sc.get("stagger", 0.35)
+        ins, fc, lay = [], [], []
+        for i, c in enumerate(cells):
+            ins += ["-stream_loop", "-1", "-ss", f"{c.get('in', 0) + ss:.3f}", "-i", str(self.media(c["src"]))]
+            fy = c.get("face", 0.4)
+            pre = "hflip," if c.get("hflip") else ""
+            fc.append(f"[{i}:v]{pre}fps={self.fps},scale={cw}:-2,crop={cw}:{ch}:0:'min(max(ih*{fy}-{ch}/2,0),ih-{ch})',"
+                      f"colorbalance=rs=.04:bs=-.04,setsar=1" + ("" if frames else f",fade=t=in:st={i * stg:.2f}:d=0.6") + f"[c{i}]")
+            lay.append(f"{gap + (i % cols) * (cw + gap)}_{gap + (i // cols) * (ch + gap)}")
+        n = len(cells)
+        fc.append("".join(f"[c{i}]" for i in range(n)) + f"xstack=inputs={n}:layout={'|'.join(lay)}:fill=0x050404[g]")
+        fc.append(f"[g]pad={W}:{H}:0:0:color=0x050404,scale=w='trunc({W}*(1+0.04*t/{D})/2)*2':h=-2:eval=frame,crop={W}:{H}[gz]")
+        fc.append(f"[gz][{n}:v]overlay=0:0:format=auto,format=yuv420p[v]")
+        cmd = ["ffmpeg", "-y", "-v", "error", *ins, "-i", ovl, "-filter_complex", ";".join(fc), "-map", "[v]"]
+        if frames:
+            cmd += ["-frames:v", str(frames)]
+        else:
+            cmd += ["-t", f"{D:.3f}", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "16"]
+        return cmd + [out]
+
     def render_footage(self, sc):
+        if sc.get("template") == "mosaic":
+            log(f"мозаика {sc['id']}: {len(sc['cells'])} врачей")
+            subprocess.run(self.mosaic_cmd(sc, sc["_clip"], sc["_ovl"]), check=True)
+            return
         src, t = self.media(sc["src"]), sc["_t"]
         D = t["dur"]
         vf = self.footage_vf(sc)
@@ -355,13 +393,13 @@ class Project:
     def footage_audio(self):
         out = []
         for sc in self.scenes:
-            if sc.get("template") != "footage" or not sc.get("audio", True):
+            if sc.get("template") not in ("footage", "mosaic") or not sc.get("audio", True):
                 continue
             f = self.build / "vo" / f"{sc['id']}.live.wav"
             dur = sc.get("audio_out", sc.get("out", sc.get("in", 0) + sc["_t"]["dur"])) - sc.get("in", 0)
             subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", str(sc.get("in", 0)), "-t", f"{dur:.3f}",
                             "-i", str(self.media(sc["src"])), "-vn", "-ac", "2", "-ar", str(audio.SR),
-                            "-af", "highpass=f=70,afade=t=in:d=0.04,areverse,afade=t=in:d=0.08,areverse", str(f)], check=False)
+                            "-af", "highpass=f=70,afftdn=nr=10:nf=-40,afade=t=in:d=0.04,areverse,afade=t=in:d=0.08,areverse", str(f)], check=False)
             if f.exists() and f.stat().st_size > 1000:
                 self.level_dialog(f)
                 out.append({"file": str(f), "start": sc["_t"]["start"], "gain": sc.get("volume", 1.0)})
@@ -370,7 +408,11 @@ class Project:
     # ---------------------------------------------------------- music + mix
     def stage_music(self):
         m = self.script.get("music", {})
-        secs = [{"start": sc["_t"]["start"], "energy": sc.get("energy", 0.5)} for sc in self.scenes]
+        secs = []
+        for sc in self.scenes:
+            secs.append({"start": sc["_t"]["start"], "energy": sc.get("energy", 0.5), "pause": bool(sc.get("music_pause"))})
+            if sc.get("music_pause") and isinstance(sc["music_pause"], (int, float)):  # pause only for N seconds
+                secs.append({"start": sc["_t"]["start"] + sc["music_pause"], "energy": sc.get("energy", 0.5)})
         if m.get("file"):
             log("музыка: используем файл " + m["file"])
             return
@@ -392,6 +434,8 @@ class Project:
                 sfx.append({"kind": "impact", "start": t["start"] + t["td_in"] + sc.get("hit_offset", 0), "gain": 0.9})
             if sc.get("riser"):
                 sfx.append({"kind": "riser", "start": t["start"] + t["td_in"], "gain": 0.7})
+            for fx in sc.get("sfx", []):  # scene-level effects, e.g. {"kind": "applause", "at": 0.3, "gain": 0.5}
+                sfx.append({"kind": fx["kind"], "start": t["start"] + fx.get("at", 0), "gain": fx.get("gain", 0.6)})
         music = m.get("file") or str(self.build / "music.wav")
         log("сведение: голос + музыка (sidechain) + эффекты → −14 LUFS")
         audio.mix({"length": self.length, "vo": vo + self.footage_audio(), "music": music, "sfx": sfx}, self.build / "mix.wav",
@@ -507,9 +551,9 @@ def cmd_inbox():
         used |= set(re.findall(r'"inbox:([^"]+)"', sj.read_text()))
     rows = []
     for f in sorted(d.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
-        if f.suffix.lower() not in VIDEO_EXT or f.name.startswith("."):
+        if f.suffix.lower() not in VIDEO_EXT | IMAGE_EXT or f.name.startswith("."):
             continue
-        pr = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(f)],
+        pr = "" if f.suffix.lower() in IMAGE_EXT else subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(f)],
                             capture_output=True, text=True).stdout.strip()
         rows.append({"file": f.name, "src": f"inbox:{f.name}", "mb": round(f.stat().st_size / 2**20, 1),
                      "sec": round(float(pr or 0), 1), "new": f.name not in used,
@@ -537,8 +581,8 @@ def cmd_pull():
     for a in rel.get("assets", []):
         name = a["name"].removeprefix("default.")
         ctype = a.get("content_type", "")
-        if Path(name).suffix.lower() not in VIDEO_EXT:
-            if not ctype.startswith("video/"):
+        if Path(name).suffix.lower() not in VIDEO_EXT | IMAGE_EXT:
+            if not ctype.startswith(("video/", "image/")):
                 continue
             name += {"video/quicktime": ".mov", "video/x-matroska": ".mkv", "video/webm": ".webm"}.get(ctype, ".mp4")
         dst = d / name

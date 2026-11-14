@@ -23,6 +23,9 @@
     clean:    { bg: ['#f7f8fc', '#e7ebf7'], fg: '#0d1321', muted: '#5c677d', accent: '#3a5cff', accent2: '#ff5c8a',
                 blobs: ['#c7d2fe', '#fbcfe8', '#bae6fd', '#ddd6fe'], glow: 'rgba(58,92,255,.0)',
                 card: 'rgba(255,255,255,0.75)', border: 'rgba(13,19,33,0.08)', leak: 'rgba(255,255,255,0)' },
+    documentary: { bg: ['#050404', '#0d0a08'], fg: '#f6efe6', muted: '#b9ab98', accent: '#e8c99a', accent2: '#f3e3c8',
+                blobs: ['#3a2a1c', '#21180f', '#2c2116', '#1a130c'], glow: 'rgba(232,201,154,.25)',
+                card: 'rgba(255,255,255,0.04)', border: 'rgba(232,201,154,0.18)', leak: 'rgba(255,200,140,0.10)' },
     gold:     { bg: ['#07060a', '#17131f'], fg: '#fbf6ea', muted: '#b5aa92', accent: '#e9c46a', accent2: '#f4a261',
                 blobs: ['#3c2a4d', '#6b4e16', '#2a1f3d', '#8a6d1f'], glow: 'rgba(233,196,106,.45)',
                 card: 'rgba(255,255,255,0.05)', border: 'rgba(233,196,106,0.2)', leak: 'rgba(255,200,100,0.22)' },
@@ -402,6 +405,94 @@
     };
   };
 
+
+  // sequential lines: one calm phrase at a time (documentary intro / closing inscriptions)
+  T.lines = (d, D) => {
+    const box = h('div', '', null, { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' });
+    const L = (d.lines || []);
+    const els = L.map(tx => {
+      const e = h('div', '', null, { position: 'absolute', width: '80%', textAlign: 'center', fontSize: U(d.size || 5.2),
+        fontWeight: d.weight || 300, letterSpacing: '0.01em', lineHeight: 1.25, color: 'var(--fg)' });
+      e.innerHTML = esc(tx).replace(/\*(.+?)\*/g, '<span class="accent">$1</span>');
+      box.appendChild(e); return e;
+    });
+    const k = d.kicker ? h('div', 'kicker', esc(d.kicker), { position: 'absolute', top: '18%', width: '100%', justifyContent: 'center' }) : null;
+    if (k) box.appendChild(k);
+    const lead = d.lead ?? 0.4, tail = d.tail ?? 0.6;
+    const seg = (D - lead - tail) / Math.max(L.length, 1);
+    const keep = d.stack;  // stack: lines stay and stack vertically
+    if (keep) els.forEach((e, i) => { e.style.position = 'relative'; e.style.margin = U(1.2) + ' 0'; });
+    if (keep) { box.style.flexDirection = 'column'; }
+    return {
+      el: box, update(t) {
+        if (k) fadeUp(k, t, 0.1, 0.8, 1);
+        els.forEach((e, i) => {
+          const a = lead + i * seg;
+          const inn = E.out(P(t, a, 0.9));
+          const out = keep ? 0 : (i === L.length - 1 && d.holdLast ? 0 : E.inOut(P(t, a + seg - 0.55, 0.55)));
+          e.style.opacity = inn * (1 - out);
+          e.style.filter = `blur(${(1 - inn) * 8 + out * 6}px)`;
+          e.style.transform = `translateY(${(1 - inn) * 1.2}vh) scale(${1 + 0.02 * P(t, a, seg)})`;
+        });
+      }
+    };
+  };
+
+  // golden confetti + light sweep overlay (for joyful finale over a photo)
+  function confettiLayer(seed, n, startT) {
+    const c = h('canvas', '', null, { position: 'absolute', inset: 0, width: '100%', height: '100%' });
+    c.width = W; c.height = H;
+    const g = c.getContext('2d'), r = mulberry(seed);
+    const P_ = Array.from({ length: n }, () => ({ x: r(), y: -0.2 - r() * 0.8, vy: 0.08 + r() * 0.12, vx: (r() - 0.5) * 0.04,
+      s: 4 + r() * 9, rot: r() * 6, vr: (r() - 0.5) * 6, c: ['#f2d18b', '#ffffff', '#e8b86a', '#fff1cf', '#d9a55a'][Math.floor(r() * 5)], ph: r() * 6 }));
+    return { el: c, draw(t) {
+      g.clearRect(0, 0, W, H);
+      const T_ = t - startT; if (T_ < 0) return;
+      const sc = Math.min(W, H) / 1080;
+      P_.forEach(p => {
+        const y = (p.y + p.vy * T_) * H, x = (p.x + p.vx * T_ + 0.02 * Math.sin(T_ * 2 + p.ph)) * W;
+        if (y > H + 20) return;
+        g.save(); g.translate(x, y); g.rotate(p.rot + p.vr * T_);
+        g.globalAlpha = 0.85; g.fillStyle = p.c;
+        g.fillRect(-p.s * sc / 2, -p.s * sc / 4, p.s * sc, p.s * sc / 2 * (0.6 + 0.4 * Math.abs(Math.sin(T_ * 5 + p.ph))));
+        g.restore();
+      });
+    } };
+  }
+
+  // living photo: smooth camera drift + warm bloom + confetti + caption
+  T.photo = (d, D) => {
+    const box = h('div', '', null, { position: 'absolute', inset: 0, overflow: 'hidden', background: '#000' });
+    const img = h('img', '', null, { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transformOrigin: d.origin || '50% 60%' });
+    img.src = d.src;
+    const warm = h('div', '', null, { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 30%, rgba(255,210,150,.0) 0%, rgba(20,10,0,.45) 100%)' });
+    const sweep = h('div', '', null, { position: 'absolute', inset: 0, mixBlendMode: 'screen' });
+    const shade = h('div', '', null, { position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(5,4,3,.82) 0%, rgba(5,4,3,0) 42%)' });
+    const flash = h('div', '', null, { position: 'absolute', inset: 0, background: '#fff', opacity: 0 });
+    box.append(img, warm, sweep);
+    const conf = d.confetti ? confettiLayer(77, d.confetti, d.confettiAt ?? 0.4) : null;
+    if (conf) box.appendChild(conf.el);
+    box.append(shade);
+    const cap = d.title ? h('div', '', null, { position: 'absolute', left: 0, right: 0, bottom: '9%', textAlign: 'center' }) : null;
+    if (cap) {
+      const t1 = h('div', '', esc(d.title), { fontSize: U(d.size || 5), fontWeight: 300, color: '#fff', letterSpacing: '.01em', textShadow: '0 2px 20px rgba(0,0,0,.6)' });
+      cap.appendChild(t1);
+      if (d.subtitle) cap.appendChild(h('div', '', esc(d.subtitle), { fontSize: U(3.4), fontWeight: 600, color: 'var(--accent)', marginTop: U(1.2), letterSpacing: '.02em' }));
+      box.appendChild(cap);
+    }
+    box.appendChild(flash);
+    const kb = d.kenburns || { from: [1.0, 0, 0], to: [1.12, 0, -2] };
+    return { el: box, update(t) {
+      const x = E.inOut(P(t, 0, D));
+      img.style.transform = `scale(${lerp(kb.from[0], kb.to[0], x)}) translate(${lerp(kb.from[1], kb.to[1], x)}%, ${lerp(kb.from[2], kb.to[2], x)}%)`;
+      const sx = -30 + 160 * P(t, 0.3, Math.min(D, 4.5));
+      sweep.style.background = `linear-gradient(105deg, rgba(255,220,160,0) ${sx - 18}%, rgba(255,220,160,.28) ${sx}%, rgba(255,220,160,0) ${sx + 18}%)`;
+      if (d.flash) flash.style.opacity = 0.55 * (1 - E.out(P(t, 0, 0.7)));
+      if (conf) conf.draw(t);
+      if (cap) fadeUp(cap, t, d.titleAt ?? 1.2, 1.0, 2);
+    } };
+  };
+
   T.none = () => ({ el: h('div'), update() {} });
 
   // lower third — name / role plate over footage
@@ -409,8 +500,10 @@
     const box = h('div', '', null, { position: 'absolute', left: '6%', bottom: W < H ? '24%' : '14%', display: 'flex', alignItems: 'stretch', gap: U(1.6) });
     const bar = h('div', '', null, { width: U(0.6), background: 'var(--accent)', boxShadow: '0 0 14px var(--accent)', transformOrigin: 'bottom' });
     const col = h('div', '', null, { display: 'flex', flexDirection: 'column', gap: U(0.6), padding: `${U(1.2)} ${U(2.2)}`, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: U(0.6) });
-    const nm = h('div', 'h1', esc(d.title || ''), { fontSize: U(d.size || 4.4), color: '#fff' });
-    const rl = h('div', '', esc(d.caption || ''), { fontSize: U(2.4), color: 'var(--accent)', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' });
+    const nm = h('div', 'h1', esc(d.title || ''), { fontSize: U(d.size || 4.4), color: '#fff', ...(d.plain ? { fontWeight: 600, letterSpacing: '-0.01em' } : {}) });
+    const rl = h('div', '', esc(d.caption || ''), d.plain
+      ? { fontSize: U(2.3), color: 'var(--accent)', fontWeight: 400, letterSpacing: '.01em' }
+      : { fontSize: U(2.4), color: 'var(--accent)', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' });
     col.append(nm); if (d.caption) col.append(rl);
     box.append(bar, col);
     const hold = d.hold || Math.min(D - 0.6, 5);

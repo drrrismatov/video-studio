@@ -381,6 +381,29 @@ def sfx_tick(seed=14):
     x = np.sin(2 * np.pi * 2200 * t) * np.exp(-t * 90) + highpass(rng(seed).standard_normal(n), 5000) * np.exp(-t * 200) * 0.3
     return stereo(x) * 0.25
 
+def sfx_applause(dur=5.0, seed=15, people=40):
+    """Warm crowd applause: many clappers, each a train of short filtered noise bursts."""
+    n = int(dur * SR); g = rng(seed)
+    out = np.zeros((n, 2))
+    clap_len = int(0.025 * SR)
+    tt = np.arange(clap_len) / SR
+    for p_ in range(people):
+        rate = 3.5 + g.random() * 2.5; t = g.random() * 0.4
+        pan = g.random() * 1.6 - 0.8; fc = 900 + g.random() * 1800
+        burst_base = bandpass(g.standard_normal(clap_len * 60), fc * 0.6, fc * 2.2)
+        k = 0
+        while t < dur:
+            i = int(t * SR)
+            b = burst_base[(k % 60) * clap_len:(k % 60 + 1) * clap_len] * np.exp(-tt * 140) * (0.6 + 0.4 * g.random())
+            seg = stereo(b, pan)[: n - i]
+            out[i:i + len(seg)] += seg
+            t += 1 / rate * (0.85 + 0.3 * g.random()); k += 1
+    env = np.minimum(np.arange(n) / (0.6 * SR), 1) * np.clip((dur - np.arange(n) / SR) / 1.8, 0, 1)
+    out *= env[:, None]
+    out = reverb(out / (np.abs(out).max() + 1e-9), 1.6, 0.35)
+    return out * 0.6
+
+
 # ---------------------------------------------------------------- mix
 
 def mix(timeline: dict, out: Path, music_vol: float = 0.8, duck: float = 0.35) -> None:
@@ -405,7 +428,7 @@ def mix(timeline: dict, out: Path, music_vol: float = 0.8, duck: float = 0.35) -
     gain = 1 - (1 - duck) * np.clip(sm * 1.5, 0, 1)
     mus *= gain[:, None] * music_vol
     fx = np.zeros((n, 2))
-    gens = {"whoosh": sfx_whoosh, "impact": sfx_impact, "riser": sfx_riser, "tick": sfx_tick}
+    gens = {"whoosh": sfx_whoosh, "impact": sfx_impact, "riser": sfx_riser, "tick": sfx_tick, "applause": sfx_applause}
     for i, s in enumerate(timeline.get("sfx", [])):
         g = gens[s["kind"]]
         x = g(seed=20 + i)
@@ -542,6 +565,17 @@ def compose_piano(length, sections, key="D", bpm=68, seed=3):
             place(pno, piano_note(ch[0] + 24, 3.5, 0.45, seed + 999), t0)
     mix = reverb(pno * 0.55, 3.2, 0.32) + reverb(strs * 0.5, 4.0, 0.5)
     mix = highpass(mix, 35)
+    # sample-accurate musical pauses: breathe out over 0.8 s, silence, gentle return
+    gain = np.ones(len(mix))
+    for i, sct in enumerate(sections):
+        if sct.get("pause"):
+            a = int(sct["start"] * SR)
+            b = int(sections[i + 1]["start"] * SR) if i + 1 < len(sections) else len(mix)
+            f = int(0.8 * SR)
+            gain[a:b] = 0.0
+            gain[max(a - f, 0):a] = np.minimum(gain[max(a - f, 0):a], np.linspace(1, 0, a - max(a - f, 0)) ** 2)
+            gain[b:b + f] = np.minimum(gain[b:b + f], np.linspace(0, 1, len(gain[b:b + f])) ** 0.7)
+    mix *= gain[:, None]
     mix = softclip(mix * 1.1, 1.1) * 0.85
     out = mix[: int(length * SR)]
     fade = int(min(3.0, length / 4) * SR)

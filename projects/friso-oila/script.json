@@ -1,0 +1,996 @@
+{
+ "title": "Friso — One Family. One Oila.",
+ "logline": "Мы живём в разных городах и работаем в разных клиниках, но мы — одна большая семья. Оила.",
+ "format": "16:9",
+ "fps": 30,
+ "theme": "documentary",
+ "accent": "#e8c99a",
+ "music": {
+  "mood": "piano",
+  "key": "D",
+  "bpm": 66,
+  "volume": 0.8,
+  "duck": 0.14
+ },
+ "subtitles": true,
+ "whoosh": false,
+ "grade": {
+  "grain": 3,
+  "vignette": true,
+  "letterbox": false,
+  "contrast": 1.02,
+  "saturation": 1.0
+ },
+ "bg": {
+  "particles": 24,
+  "speed": 0.4,
+  "blobAlpha": 0.22
+ },
+ "transition_duration": 0.9,
+ "scenes": [
+  {
+   "template": "footage",
+   "src": "inbox:IMG_7046.mov",
+   "in": 0.4,
+   "out": 1.0,
+   "audio": false,
+   "look": "warm",
+   "zoom": 1.06,
+   "transition": "none",
+   "energy": 0.12,
+   "min_duration": 0.3,
+   "subs": false,
+   "captions": [],
+   "whoosh": false,
+   "visual_note": "холодное открытие: улыбки"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_3350.mov",
+   "in": 15.7,
+   "out": 16.3,
+   "audio": false,
+   "look": "warm",
+   "zoom": 1.06,
+   "transition": "cut",
+   "energy": 0.12,
+   "min_duration": 0.3,
+   "subs": false,
+   "captions": [],
+   "whoosh": false,
+   "visual_note": "холодное открытие: улыбки"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_8304.MOV",
+   "in": 57.3,
+   "out": 57.9,
+   "audio": false,
+   "look": "warm",
+   "zoom": 1.06,
+   "transition": "cut",
+   "energy": 0.12,
+   "min_duration": 0.3,
+   "subs": false,
+   "captions": [],
+   "whoosh": false,
+   "visual_note": "холодное открытие: улыбки",
+   "sharpen": true
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_9695.mov",
+   "in": 16.4,
+   "out": 17.0,
+   "audio": false,
+   "look": "warm",
+   "zoom": 1.06,
+   "transition": "cut",
+   "energy": 0.12,
+   "min_duration": 0.3,
+   "subs": false,
+   "captions": [],
+   "whoosh": false,
+   "visual_note": "холодное открытие: улыбки"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_7246.compressed.mp4",
+   "in": 26.9,
+   "out": 27.5,
+   "audio": false,
+   "look": "warm",
+   "zoom": 1.06,
+   "transition": "cut",
+   "energy": 0.12,
+   "min_duration": 0.3,
+   "subs": false,
+   "captions": [],
+   "whoosh": false,
+   "visual_note": "холодное открытие: улыбки"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_8005.mov",
+   "in": 34.3,
+   "out": 35.199999999999996,
+   "audio": false,
+   "look": "warm",
+   "zoom": 1.06,
+   "transition": "cut",
+   "energy": 0.12,
+   "min_duration": 0.3,
+   "subs": false,
+   "captions": [],
+   "whoosh": false,
+   "visual_note": "холодное открытие: улыбки",
+   "hflip": true
+  },
+  {
+   "template": "lines",
+   "transition": "fadeblack",
+   "energy": 0.12,
+   "duration": 13.5,
+   "subs": false,
+   "visual_note": "Чёрный экран, фортепиано, фразы появляются по очереди",
+   "data": {
+    "lines": [
+     "Мы живём в разных городах.",
+     "Работаем в разных клиниках.",
+     "У каждого — свой путь.",
+     "Но нас объединяет *любовь к детям*."
+    ],
+    "size": 4.6
+   }
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_8005.mov",
+   "in": 1.8,
+   "out": 16.7,
+   "audio": true,
+   "look": "warm",
+   "zoom": 1.04,
+   "transition": "fadeblack",
+   "energy": 0.18,
+   "captions": [
+    {
+     "start": 2.35,
+     "end": 6.91,
+     "text": "Первые годы жизни малыша — это особенное время."
+    },
+    {
+     "start": 6.91,
+     "end": 11.15,
+     "text": "Время открытий, время улыбок,"
+    },
+    {
+     "start": 11.15,
+     "end": 15.23,
+     "text": "первых шагов и, конечно же,"
+    },
+    {
+     "start": 15.23,
+     "end": 16.59,
+     "text": "большой заботы."
+    },
+    {
+     "start": 16.59,
+     "end": 20.43,
+     "text": "Пусть ваша работа приносит радость,"
+    },
+    {
+     "start": 20.43,
+     "end": 26.11,
+     "text": "а рядом будут люди, которые искренне верят в своё дело."
+    },
+    {
+     "start": 26.11,
+     "end": 30.16,
+     "text": "Спасибо вам за вашу работу, заботу."
+    },
+    {
+     "start": 30.16,
+     "end": 34.19,
+     "text": "С праздником вас, команда Friso!"
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Махкямова Наргиза Юсупджановна",
+     "caption": "Врач-невролог · Ташкентская область",
+     "plain": true,
+     "at": 0.8,
+     "hold": 5.5
+    }
+   },
+   "visual_note": "Первые годы жизни малыша — особенное время",
+   "hflip": true
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_8304.MOV",
+   "in": 1.25,
+   "out": 11.3,
+   "audio": true,
+   "look": "warm",
+   "zoom": 1.04,
+   "transition": "dissolve",
+   "energy": 0.22,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 4.67,
+     "text": "Ваша компания — это важная миссия."
+    },
+    {
+     "start": 4.67,
+     "end": 7.35,
+     "text": "Забота о самом дорогом, о детях,"
+    },
+    {
+     "start": 7.35,
+     "end": 11.59,
+     "text": "их здоровье, росте и счастливом будущем."
+    },
+    {
+     "start": 11.59,
+     "end": 13.83,
+     "text": "Желаю вам неиссякаемой энергии,"
+    },
+    {
+     "start": 13.83,
+     "end": 18.37,
+     "text": "вдохновения, процветания и уверенного движения вперед."
+    },
+    {
+     "start": 18.37,
+     "end": 21.69,
+     "text": "Пусть каждый ваш день будет наполнен добрыми"
+    },
+    {
+     "start": 21.69,
+     "end": 24.25,
+     "text": "событиями, искренними улыбками."
+    },
+    {
+     "start": 24.25,
+     "end": 26.53,
+     "text": "радостью от проделанной работы."
+    },
+    {
+     "start": 26.53,
+     "end": 29.37,
+     "text": "Пусть в коллективе заряд тепло,"
+    },
+    {
+     "start": 30.03,
+     "end": 33.61,
+     "text": "взаимопонимание, уважение, а все задуманные"
+    },
+    {
+     "start": 33.61,
+     "end": 35.69,
+     "text": "планы воплощаются в жизнь."
+    },
+    {
+     "start": 35.69,
+     "end": 39.65,
+     "text": "Пусть доверие людей, профессионализм команды и"
+    },
+    {
+     "start": 39.65,
+     "end": 42.77,
+     "text": "высокое качество продукции остаются основой"
+    },
+    {
+     "start": 42.77,
+     "end": 44.37,
+     "text": "вашего успеха."
+    },
+    {
+     "start": 44.37,
+     "end": 46.17,
+     "text": "Вы дарите здоровье."
+    },
+    {
+     "start": 46.17,
+     "end": 49.71,
+     "text": "пользу и радость самым маленьким потребителям,"
+    },
+    {
+     "start": 49.71,
+     "end": 52.96,
+     "text": "а родителям спокойствие и уверенность."
+    },
+    {
+     "start": 52.96,
+     "end": 56.76,
+     "text": "Пусть добро возвращается к вам многократно."
+    },
+    {
+     "start": 56.76,
+     "end": 59.8,
+     "text": "С Днем рождения, с теплом и наилучшими"
+    },
+    {
+     "start": 59.8,
+     "end": 60.6,
+     "text": "пожеланиями!"
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Рейхан Азизовна",
+     "caption": "Врач-педиатр, неонатолог высшей категории",
+     "plain": true,
+     "at": 0.8,
+     "hold": 5.5
+    }
+   },
+   "visual_note": "Ваша компания — это важная миссия",
+   "sharpen": true
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_3350.mov",
+   "in": 0.0,
+   "out": 15.1,
+   "audio": true,
+   "look": "warm",
+   "zoom": 1.04,
+   "transition": "dissolve",
+   "energy": 0.28,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 2.07,
+     "text": "Самое ценное в нашей работе —"
+    },
+    {
+     "start": 2.07,
+     "end": 4.55,
+     "text": "это видеть, как растут и развиваются детки,"
+    },
+    {
+     "start": 4.55,
+     "end": 6.71,
+     "text": "как уходит тревога с лиц родителей и"
+    },
+    {
+     "start": 6.71,
+     "end": 8.07,
+     "text": "появляется улыбка."
+    },
+    {
+     "start": 8.07,
+     "end": 11.35,
+     "text": "Во многом это происходит благодаря вашей компании."
+    },
+    {
+     "start": 11.35,
+     "end": 13.95,
+     "text": "Хочу пожелать вашей команде вдохновения и"
+    },
+    {
+     "start": 13.95,
+     "end": 15.11,
+     "text": "новых достижений."
+    },
+    {
+     "start": 15.11,
+     "end": 16.75,
+     "text": "С праздником вас!"
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Голубина Ирина Вячеславовна",
+     "caption": "Врач-педиатр · Клиника «Медион», Ташкент",
+     "plain": true,
+     "at": 0.8,
+     "hold": 5.5
+    }
+   },
+   "visual_note": "Самое ценное — видеть, как растут детки"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_9695.mov",
+   "in": 0.9,
+   "out": 16.0,
+   "audio": true,
+   "look": "warm",
+   "zoom": 1.04,
+   "transition": "dissolve",
+   "energy": 0.32,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 3.59,
+     "text": "От всей души поздравляю компанию и всю её"
+    },
+    {
+     "start": 3.59,
+     "end": 5.19,
+     "text": "команду с юбилеем."
+    },
+    {
+     "start": 5.19,
+     "end": 8.34,
+     "text": "Желаю всем здоровья, процветания,"
+    },
+    {
+     "start": 8.34,
+     "end": 12.07,
+     "text": "успеха в работе, мирного неба над нашими головами."
+    },
+    {
+     "start": 12.07,
+     "end": 14.67,
+     "text": "И надеюсь, мы будем ещё долго сотрудничать"
+    },
+    {
+     "start": 14.67,
+     "end": 15.99,
+     "text": "вместе с вами."
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Юлдашева Мубарак Аширматова",
+     "caption": "Врач-неонатолог высшей категории · Ташкент",
+     "plain": true,
+     "at": 0.8,
+     "hold": 5.5
+    }
+   },
+   "visual_note": "От всей души поздравляю… сотрудничать вместе"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_7246.compressed.mp4",
+   "in": 1.5,
+   "out": 25.0,
+   "audio": true,
+   "look": "warm",
+   "zoom": 1.04,
+   "transition": "dissolve",
+   "energy": 0.38,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 4.67,
+     "text": "Миллионы людей приходят и уходят."
+    },
+    {
+     "start": 4.67,
+     "end": 6.75,
+     "text": "Меняются компании, меняются люди."
+    },
+    {
+     "start": 6.75,
+     "end": 10.75,
+     "text": "Но настоящие ценности остаются неизменными."
+    },
+    {
+     "start": 10.75,
+     "end": 13.01,
+     "text": "Для нас врачи — это здоровье детей,"
+    },
+    {
+     "start": 13.01,
+     "end": 16.03,
+     "text": "доверие родителей, и сплочённость людей,"
+    },
+    {
+     "start": 16.03,
+     "end": 18.04,
+     "text": "которые идут к одной цели."
+    },
+    {
+     "start": 18.04,
+     "end": 20.68,
+     "text": "И здорово, когда рядом есть партнеры,"
+    },
+    {
+     "start": 20.68,
+     "end": 23.64,
+     "text": "которые разделяют эти ценности и заботу о"
+    },
+    {
+     "start": 23.64,
+     "end": 25.0,
+     "text": "будущем поколении."
+    },
+    {
+     "start": 25.0,
+     "end": 27.44,
+     "text": "С днем рождения Фриса, за детей,"
+    },
+    {
+     "start": 27.44,
+     "end": 31.6,
+     "text": "за наше дело и за людей, которые идут к одной цели."
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Руслан Исматов",
+     "caption": "Врач-педиатр · Фергана",
+     "plain": true,
+     "at": 0.8,
+     "hold": 5.5
+    }
+   },
+   "visual_note": "Ценности остаются… идут к одной цели"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_7046.mov",
+   "in": 0.0,
+   "out": 14.85,
+   "audio": true,
+   "look": "warm",
+   "zoom": 1.04,
+   "transition": "dissolve",
+   "energy": 0.3,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 4.47,
+     "text": "Знаете, мне кажется, самое прекрасное в нашей"
+    },
+    {
+     "start": 4.47,
+     "end": 7.41,
+     "text": "работе — это люди, которые со временем"
+    },
+    {
+     "start": 7.41,
+     "end": 9.27,
+     "text": "становятся нам не просто коллегами,"
+    },
+    {
+     "start": 9.27,
+     "end": 10.95,
+     "text": "а настоящей семьей."
+    },
+    {
+     "start": 10.95,
+     "end": 14.79,
+     "text": "Мы все одна оила, одна большая семья,"
+    },
+    {
+     "start": 14.79,
+     "end": 18.34,
+     "text": "которую объединяет любовь к детям,"
+    },
+    {
+     "start": 18.34,
+     "end": 20.44,
+     "text": "забота и общие ценности."
+    },
+    {
+     "start": 20.44,
+     "end": 24.16,
+     "text": "И сегодня хочется сказать спасибо за то, что мы..."
+    },
+    {
+     "start": 24.16,
+     "end": 28.57,
+     "text": "можем быть частью чего-то доброго и важного."
+    },
+    {
+     "start": 28.57,
+     "end": 32.97,
+     "text": "Желаю команде Фриса и отдельно Сартикджану"
+    },
+    {
+     "start": 32.97,
+     "end": 36.68,
+     "text": "процветания, развития и еще больше счастливых"
+    },
+    {
+     "start": 36.68,
+     "end": 39.51,
+     "text": "детских историй с теплом и благодарностью."
+    }
+   ],
+   "overlay": {
+    "template": "lower",
+    "data": {
+     "title": "Махмудова Диля Ахмедовна",
+     "caption": "Врач-неонатолог · Центр матери и ребёнка, Самарканд",
+     "plain": true,
+     "at": 0.8,
+     "hold": 5.5
+    }
+   },
+   "visual_note": "ЭМОЦИОНАЛЬНЫЙ ЦЕНТР: «не просто коллеги… одна оила, одна большая семья»",
+   "transition_duration": 1.0
+  },
+  {
+   "template": "mosaic",
+   "src": "inbox:IMG_7046.mov",
+   "in": 14.85,
+   "out": 20.45,
+   "audio": true,
+   "transition": "fadeblack",
+   "transition_duration": 1.0,
+   "energy": 0.5,
+   "music_pause": 2.6,
+   "duration": 10.5,
+   "captions": [
+    {
+     "start": -0.05,
+     "end": 4.47,
+     "text": "Знаете, мне кажется, самое прекрасное в нашей"
+    },
+    {
+     "start": 4.47,
+     "end": 7.41,
+     "text": "работе — это люди, которые со временем"
+    },
+    {
+     "start": 7.41,
+     "end": 9.27,
+     "text": "становятся нам не просто коллегами,"
+    },
+    {
+     "start": 9.27,
+     "end": 10.95,
+     "text": "а настоящей семьей."
+    },
+    {
+     "start": 10.95,
+     "end": 14.79,
+     "text": "Мы все одна оила, одна большая семья,"
+    },
+    {
+     "start": 14.79,
+     "end": 18.34,
+     "text": "которую объединяет любовь к детям,"
+    },
+    {
+     "start": 18.34,
+     "end": 20.44,
+     "text": "забота и общие ценности."
+    },
+    {
+     "start": 20.44,
+     "end": 24.16,
+     "text": "И сегодня хочется сказать спасибо за то, что мы..."
+    },
+    {
+     "start": 24.16,
+     "end": 28.57,
+     "text": "можем быть частью чего-то доброго и важного."
+    },
+    {
+     "start": 28.57,
+     "end": 32.97,
+     "text": "Желаю команде Фриса и отдельно Сартикджану"
+    },
+    {
+     "start": 32.97,
+     "end": 36.68,
+     "text": "процветания, развития и еще больше счастливых"
+    },
+    {
+     "start": 36.68,
+     "end": 39.51,
+     "text": "детских историй с теплом и благодарностью."
+    }
+   ],
+   "cells": [
+    {
+     "src": "inbox:IMG_8005.mov",
+     "in": 24,
+     "face": 0.4,
+     "hflip": true
+    },
+    {
+     "src": "inbox:IMG_8304.MOV",
+     "in": 18,
+     "face": 0.43
+    },
+    {
+     "src": "inbox:IMG_3350.mov",
+     "in": 8,
+     "face": 0.3
+    },
+    {
+     "src": "inbox:IMG_9695.mov",
+     "in": 5,
+     "face": 0.52
+    },
+    {
+     "src": "inbox:IMG_7046.mov",
+     "in": 14.85,
+     "face": 0.47
+    },
+    {
+     "src": "inbox:IMG_7246.compressed.mp4",
+     "in": 18,
+     "face": 0.45
+    }
+   ],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "Мы — одна большая семья. *Оила.*",
+     "size": 6,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "delay": 6.4,
+     "stagger": 0.12
+    }
+   },
+   "visual_note": "ОБЩИЙ КАДР: все 6 врачей; пауза в музыке → голос Дили продолжает → «Мы — одна большая семья. Оила.»"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_8005.mov",
+   "in": 32.85,
+   "out": 34.4,
+   "audio_out": 34.25,
+   "audio": true,
+   "volume": 1.1,
+   "look": "warm",
+   "zoom": 1.1,
+   "transition": "fadeblack",
+   "energy": 0.6,
+   "min_duration": 0.5,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*Команда Friso!*",
+     "size": 10,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "whoosh": false,
+   "visual_note": "ЦЕПОЧКА: «Команда Friso!»",
+   "hflip": true,
+   "transition_duration": 0.6
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_9695.mov",
+   "in": 0.82,
+   "out": 1.95,
+   "audio_out": 1.72,
+   "audio": true,
+   "volume": 1.1,
+   "look": "warm",
+   "zoom": 1.1,
+   "transition": "cut",
+   "energy": 0.62,
+   "min_duration": 0.5,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*от всей души*",
+     "size": 10,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "whoosh": false,
+   "visual_note": "ЦЕПОЧКА: «от всей души»"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_7046.mov",
+   "in": 21.95,
+   "out": 22.75,
+   "audio_out": 22.52,
+   "audio": true,
+   "volume": 1.1,
+   "look": "warm",
+   "zoom": 1.1,
+   "transition": "cut",
+   "energy": 0.64,
+   "min_duration": 0.5,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*спасибо*",
+     "size": 10,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "whoosh": false,
+   "visual_note": "ЦЕПОЧКА: «спасибо»"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_3350.mov",
+   "in": 15.08,
+   "out": 16.9,
+   "audio_out": 16.67,
+   "audio": true,
+   "volume": 1.1,
+   "look": "warm",
+   "zoom": 1.1,
+   "transition": "cut",
+   "energy": 0.66,
+   "min_duration": 0.5,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*с праздником вас!*",
+     "size": 10,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "whoosh": false,
+   "visual_note": "ЦЕПОЧКА: «с праздником вас!»"
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_8304.MOV",
+   "in": 56.85,
+   "out": 58.5,
+   "audio_out": 58.2,
+   "audio": true,
+   "volume": 1.1,
+   "look": "warm",
+   "zoom": 1.1,
+   "transition": "cut",
+   "energy": 0.68,
+   "min_duration": 0.5,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*с днём рождения!*",
+     "size": 10,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "whoosh": false,
+   "visual_note": "ЦЕПОЧКА: «с днём рождения!»",
+   "sharpen": true
+  },
+  {
+   "template": "footage",
+   "src": "inbox:IMG_7246.compressed.mp4",
+   "in": 24.95,
+   "out": 27.2,
+   "audio_out": 26.5,
+   "audio": true,
+   "volume": 1.1,
+   "look": "warm",
+   "zoom": 1.1,
+   "transition": "cut",
+   "energy": 0.7,
+   "min_duration": 0.5,
+   "subs": false,
+   "captions": [],
+   "overlay": {
+    "template": "statement",
+    "data": {
+     "text": "*с днём рождения, Friso!*",
+     "size": 10,
+     "style": "blur",
+     "pos": "bottom",
+     "shadow": true,
+     "stagger": 0.07,
+     "delay": 0.05
+    }
+   },
+   "whoosh": false,
+   "visual_note": "ЦЕПОЧКА: «с днём рождения, Friso!»",
+   "hit": true,
+   "hit_offset": 1.6
+  },
+  {
+   "template": "photo",
+   "transition": "fadewhite",
+   "transition_duration": 0.5,
+   "energy": 0.85,
+   "duration": 10,
+   "subs": false,
+   "sfx": [
+    {
+     "kind": "applause",
+     "at": 0.2,
+     "gain": 0.45
+    }
+   ],
+   "visual_note": "ВСПЛЕСК: общее фото оживает — движение камеры, тёплый свет, конфетти, аплодисменты",
+   "data": {
+    "src": "/home/user/video-studio/inbox/IMG_1104.JPG",
+    "flash": true,
+    "confetti": 160,
+    "confettiAt": 0.2,
+    "kenburns": {
+     "from": [
+      1.0,
+      0,
+      0
+     ],
+     "to": [
+      1.16,
+      0,
+      -3.5
+     ]
+    },
+    "origin": "50% 62%",
+    "title": "Из разных уголков Узбекистана —",
+    "subtitle": "с одним сердцем",
+    "titleAt": 1.6,
+    "size": 4.6
+   }
+  },
+  {
+   "template": "lines",
+   "transition": "fadeblack",
+   "energy": 0.55,
+   "duration": 9,
+   "subs": false,
+   "visual_note": "Три благодарности, остаются на экране",
+   "data": {
+    "lines": [
+     "С любовью к детям.",
+     "С уважением к нашей профессии.",
+     "С благодарностью компании *Friso*."
+    ],
+    "stack": true,
+    "size": 4.2,
+    "lead": 0.5,
+    "tail": 1.6
+   }
+  },
+  {
+   "template": "outro",
+   "transition": "fadeblack",
+   "energy": 0.3,
+   "duration": 7,
+   "hold": 2,
+   "visual_note": "Логотип Friso (нужен официальный файл) + One Family. One Oila.",
+   "data": {
+    "title": "*Friso*",
+    "cta": "One Family. One Oila.",
+    "logo": "♥",
+    "size": 10
+   }
+  }
+ ]
+}
