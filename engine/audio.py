@@ -231,6 +231,8 @@ def hat(n=int(0.08 * SR), seed=5):
 def compose(length: float, sections: list[dict], mood: str = "cinematic", key: str = "A",
             bpm: int | None = None, seed: int = 1) -> np.ndarray:
     """sections: list of {start, energy(0-1)} sorted by start. Returns stereo score."""
+    if mood == "piano":
+        return compose_piano(length, sections, key=key, bpm=bpm or 68, seed=seed)
     m = MOODS.get(mood, MOODS["cinematic"])
     bpm = bpm or m["bpm"]
     scale = SCALES[m["scale"]]
@@ -427,3 +429,121 @@ if __name__ == "__main__":
         secs = json.loads(sys.argv[3]) if len(sys.argv) > 3 else [{"start": 0, "energy": 0.3}, {"start": 8, "energy": 0.7}]
         x = compose(20, secs, mood=sys.argv[2])
         write_wav(Path(f"/tmp/claude-0/score_{sys.argv[2]}.wav"), x)
+
+
+# ---------------------------------------------------------------- piano + strings (documentary score)
+
+def piano_note(midi, dur, vel=0.7, seed=0):
+    """Additive piano: inharmonic partials, per-partial decay, 3 detuned strings, hammer noise."""
+    f0 = note_hz(midi)
+    n = int((dur + 1.8) * SR)
+    t = np.arange(n) / SR
+    B = 0.0004 * (f0 / 261.6) ** 0.5            # inharmonicity
+    x = np.zeros(n)
+    bright = 0.35 + 0.65 * vel
+    for k in range(1, 14):
+        fk = f0 * k * np.sqrt(1 + B * k * k)
+        if fk > 12000:
+            break
+        amp = (1 / k ** 1.15) * (bright ** (k - 1) if k > 1 else 1)
+        dec = 0.9 + 0.55 * k * (f0 / 440) ** 0.6     # higher partials die faster
+        for d in (-0.6, 0.0, 0.7):                    # unison strings beating
+            x += amp / 3 * np.sin(2 * np.pi * fk * (1 + d * 0.0006) * t + k * 0.7) * np.exp(-t * dec)
+    x *= (1 - np.exp(-t / 0.002))
+    # two-stage decay (prompt + aftersound) and damper release at note end
+    x *= 0.6 * np.exp(-t * 2.2 * (f0 / 440) ** 0.3) + 0.4 * np.exp(-t * 0.35)
+    rel = np.clip(1 - (t - dur) / 0.35, 0, 1)
+    x *= np.where(t > dur, rel, 1)
+    hammer = highpass(rng(seed).standard_normal(n), 1500) * np.exp(-t * 180) * 0.03
+    x = (x + hammer) * vel
+    pan = np.clip((midi - 60) / 40, -0.6, 0.6)
+    return stereo(lowpass(x, 3500 + 5000 * vel), pan)
+
+
+def strings_note(midi, dur, vel=0.5, seed=0):
+    """Soft string ensemble: detuned saws with vibrato, slow bow attack, warm low-pass."""
+    f0 = note_hz(midi)
+    n = int((dur + 1.5) * SR)
+    t = np.arange(n) / SR
+    g = rng(seed)
+    out = np.zeros((n, 2))
+    for v in range(6):
+        rate, depth = 4.6 + g.random() * 1.2, 0.0035 + g.random() * 0.002
+        det = 1 + (g.random() - 0.5) * 0.008
+        ph = 2 * np.pi * np.cumsum(f0 * det * (1 + depth * np.sin(2 * np.pi * rate * t + g.random() * 6))) / SR
+        saw = np.zeros(n)
+        for k in range(1, 9):
+            saw += np.sin(k * ph) / k
+        pan = (v / 5) * 1.4 - 0.7
+        out += stereo(saw, pan) / 6
+    env = np.clip(t / 0.9, 0, 1) ** 1.5 * np.where(t > dur, np.clip(1 - (t - dur) / 1.2, 0, 1), 1)
+    return lowpass(out, 1400 + 1600 * vel) * env[:, None] * vel
+
+
+def compose_piano(length, sections, key="D", bpm=68, seed=3):
+    """Documentary score: solo piano -> + strings -> swell; supports musical pauses.
+    sections: [{start, energy, pause?}] ; energy<0.3 piano only, >=0.3 adds strings, >=0.6 adds cellos+octaves."""
+    scale = SCALES["major"]
+    prog = [1, 5, 6, 4, 1, 5, 4, 4]          # warm, hopeful
+    beat = 60 / bpm
+    bar = beat * 4
+    n_total = int((length + 4) * SR)
+    pno = np.zeros((n_total, 2)); strs = np.zeros((n_total, 2))
+    root = 50 + KEYS.get(key, 2)               # around D3
+    while root > 52:
+        root -= 12
+    g = rng(seed)
+
+    def sec_at(t):
+        cur = sections[0] if sections else {"energy": 0.3}
+        for s in sections:
+            if s["start"] <= t + 1e-6:
+                cur = s
+        return cur
+
+    melody_shape = [4, 2, 3, 1, 2, 0, 1, 2]  # chord-tone indices for gentle top line
+    n_bars = int(np.ceil(length / bar)) + 1
+    for b in range(n_bars):
+        t0 = b * bar
+        if t0 > length:
+            break
+        s = sec_at(t0)
+        if s.get("pause"):
+            continue
+        e = s["energy"]
+        deg = prog[b % len(prog)]
+        ch = chord_notes(root + 12, scale, deg)          # mid voicing
+        bass = root + scale[(deg - 1) % 7]
+        last = t0 + bar >= length
+        # left hand: bass + fifth, broken
+        place(pno, piano_note(bass, bar * 0.95, 0.5 + 0.15 * e, seed + b), t0)
+        place(pno, piano_note(bass + 7, beat * 1.8, 0.35, seed + b + 1), t0 + beat * 2)
+        # right hand: broken chord eighths (sparser when calm)
+        step = beat / 2 if e >= 0.25 else beat
+        pool = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[1] + 12]
+        for i in range(int(round(bar / step))):
+            if last and i > 0:
+                break
+            v = 0.32 + 0.18 * e + 0.06 * (i % 4 == 0)
+            place(pno, piano_note(pool[i % 4], step * 1.6, v, seed + b * 17 + i), t0 + i * step + g.normal(0, 0.006))
+        # top melody note every half bar when energy grows
+        if e >= 0.35 and not last:
+            for h in range(2):
+                m = ch[melody_shape[(b * 2 + h) % 8] % 3] + 24
+                place(pno, piano_note(m, beat * 1.9, 0.45 + 0.2 * e, seed + b * 31 + h), t0 + h * beat * 2 + 0.01)
+        # strings
+        if e >= 0.3:
+            dur = bar + (3 if last else 0.15)
+            for j, nt in enumerate(ch + ([ch[0] + 12] if e >= 0.5 else [])):
+                place(strs, strings_note(nt + 12, dur, 0.22 + 0.3 * e, seed + b * 7 + j), t0)
+            if e >= 0.6:
+                place(strs, strings_note(bass, dur, 0.35 + 0.2 * e, seed + b * 9), t0)  # cellos
+        if last:
+            place(pno, piano_note(ch[0] + 24, 3.5, 0.45, seed + 999), t0)
+    mix = reverb(pno * 0.55, 3.2, 0.32) + reverb(strs * 0.5, 4.0, 0.5)
+    mix = highpass(mix, 35)
+    mix = softclip(mix * 1.1, 1.1) * 0.85
+    out = mix[: int(length * SR)]
+    fade = int(min(3.0, length / 4) * SR)
+    out[-fade:] *= np.linspace(1, 0, fade)[:, None] ** 1.5
+    return out
