@@ -89,6 +89,7 @@ class Project:
         for sc in self.scenes:
             text = sc.get("say") or sc.get("narration") or ""
             text = re.sub(r"[*_]", "", text).strip()
+            text = re.sub(r"\+([аеёиоуыэюяАЕЁИОУЫЭЮЯ])", "\\1\u0301", text)  # «век+а» -> stress on last syllable
             if not text:
                 sc["_vo"] = None
                 continue
@@ -142,7 +143,7 @@ class Project:
             off = sc.get("in", 0)
             return [{"start": round(c["start"] - off, 2), "end": round(c["end"] - off, 2), "text": c["text"]}
                     for c in sc["captions"] if c["end"] > off + 0.3 and c["start"] < sc.get("out", 1e9) - 0.3]
-        text = (sc.get("narration") or "").replace("*", "").replace("_", "").strip()
+        text = (sc.get("narration") or "").replace("*", "").replace("_", "").replace("+", "").replace("\u0301", "").strip()
         if not text or not sc.get("_vo") or sc.get("subs") is False:
             return []
         maxc = 42 if self.W >= self.H else 30
